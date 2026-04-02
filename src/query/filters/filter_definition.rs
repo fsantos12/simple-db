@@ -14,12 +14,14 @@ impl FilterDefinition {
     }
 
     // Vec like methods
-    pub fn push(&mut self, filter: Filter) {
+    pub fn push(mut self, filter: Filter) -> Self {
         self.0.push(filter);
+        self
     }
 
-    pub fn append(&mut self, other: &mut FilterDefinition) {
+    pub fn append(mut self, other: &mut FilterDefinition) -> Self {
         self.0.append(&mut other.0);
+        self
     }
 
     pub fn pop(&mut self) -> Option<Filter> {
@@ -39,88 +41,88 @@ impl FilterDefinition {
     }
 
     // --- Null Checks ---
-    pub fn is_null<F: Into<String>>(&mut self, field: F) {
-        self.push(Filter::IsNull(field.into()));
+    pub fn is_null<F: Into<String>>(self, field: F) -> Self {
+        self.push(Filter::IsNull(field.into()))
     }
 
-    pub fn is_not_null<F: Into<String>>(&mut self, field: F) {
-        self.push(Filter::IsNotNull(field.into()));
+    pub fn is_not_null<F: Into<String>>(self, field: F) -> Self {
+        self.push(Filter::IsNotNull(field.into()))
     }
 
     // --- Basic Comparisons ---
-    pub fn eq<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, value: V) {
-        self.push(Filter::Eq(field.into(), value.into()));
+    pub fn eq<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.push(Filter::Eq(field.into(), value.into()))
     }
 
-    pub fn neq<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, value: V) {
-        self.push(Filter::Neq(field.into(), value.into()));
+    pub fn neq<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.push(Filter::Neq(field.into(), value.into()))
     }
 
-    pub fn lt<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, value: V) {
-        self.push(Filter::Lt(field.into(), value.into()));
+    pub fn lt<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.push(Filter::Lt(field.into(), value.into()))
     }
 
-    pub fn lte<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, value: V) {
-        self.push(Filter::Lte(field.into(), value.into()));
+    pub fn lte<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.push(Filter::Lte(field.into(), value.into()))
     }
 
-    pub fn gt<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, value: V) {
-        self.push(Filter::Gt(field.into(), value.into()));
+    pub fn gt<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.push(Filter::Gt(field.into(), value.into()))
     }
 
-    pub fn gte<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, value: V) {
-        self.push(Filter::Gte(field.into(), value.into()));
+    pub fn gte<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.push(Filter::Gte(field.into(), value.into()))
     }
 
     // --- Pattern Matching ---
-    pub fn like<F: Into<String>, P: Into<String>>(&mut self, field: F, pattern: P) {
-        self.push(Filter::Like(field.into(), pattern.into()));
+    pub fn like<F: Into<String>, P: Into<String>>(self, field: F, pattern: P) -> Self {
+        self.push(Filter::Like(field.into(), pattern.into()))
     }
 
-    pub fn not_like<F: Into<String>, P: Into<String>>(&mut self, field: F, pattern: P) {
-        self.push(Filter::NotLike(field.into(), pattern.into()));
+    pub fn not_like<F: Into<String>, P: Into<String>>(self, field: F, pattern: P) -> Self {
+        self.push(Filter::NotLike(field.into(), pattern.into()))
     }
 
     // --- Regex Matching ---
-    pub fn regex<F: Into<String>, R: Into<String>>(&mut self, field: F, regex: R) {
-        self.push(Filter::Regex(field.into(), regex.into()));
+    pub fn regex<F: Into<String>, R: Into<String>>(self, field: F, regex: R) -> Self {
+        self.push(Filter::Regex(field.into(), regex.into()))
     }
 
     // --- Range Checks ---
-    pub fn between<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, low: V, high: V) {
-        self.push(Filter::Between(field.into(), low.into(), high.into()));
+    pub fn between<F: Into<String>, V: Into<DbValue>>(self, field: F, low: V, high: V) -> Self {
+        self.push(Filter::Between(field.into(), low.into(), high.into()))
     }
 
-    pub fn not_between<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, low: V, high: V) {
-        self.push(Filter::NotBetween(field.into(), low.into(), high.into()));
+    pub fn not_between<F: Into<String>, V: Into<DbValue>>(self, field: F, low: V, high: V) -> Self {
+        self.push(Filter::NotBetween(field.into(), low.into(), high.into()))
     }
 
     // --- Set Membership ---
-    pub fn r#in<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, values: Vec<V>) {
+    pub fn r#in<F: Into<String>, V: Into<DbValue>>(self, field: F, values: Vec<V>) -> Self {
         self.push(Filter::In(
             field.into(),
             values.into_iter().map(Into::into).collect(),
-        ));
+        ))
     }
 
-    pub fn not_in<F: Into<String>, V: Into<DbValue>>(&mut self, field: F, values: Vec<V>) {
+    pub fn not_in<F: Into<String>, V: Into<DbValue>>(self, field: F, values: Vec<V>) -> Self {
         self.push(Filter::NotIn(
             field.into(),
             values.into_iter().map(Into::into).collect(),
-        ));
+        ))
     }
 
     // --- Logical Operators ---
-    pub fn and(&mut self, filters: Vec<Filter>) {
-        self.push(Filter::And(filters));
+    pub fn and(self, filters: Vec<Filter>) -> Self {
+        self.push(Filter::And(filters))
     }
 
-    pub fn or(&mut self, filters: Vec<Filter>) {
-        self.push(Filter::Or(filters));
+    pub fn or(self, filters: Vec<Filter>) -> Self {
+        self.push(Filter::Or(filters))
     }
 
-    pub fn not(&mut self, filter: Filter) {
-        self.push(Filter::Not(Box::new(filter)));
+    pub fn not(self, filter: Filter) -> Self {
+        self.push(Filter::Not(Box::new(filter)))
     }
 }
 

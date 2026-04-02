@@ -1,8 +1,7 @@
-use crate::query::{
-    db_values::DbValue, filters::FilterDefinition, groups::GroupDefinition, projections::ProjectionDefinition, sorts::SortDefinition
-};
+use crate::{query::{
+    filters::FilterDefinition, groups::GroupDefinition, projections::ProjectionDefinition, sorts::SortDefinition
+}, value::DbValue};
 
-pub mod db_values;
 pub mod projections;
 pub mod filters;
 pub mod sorts;

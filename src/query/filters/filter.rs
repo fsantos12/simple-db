@@ -1,4 +1,4 @@
-use crate::query::db_values::DbValue;
+use crate::value::DbValue;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Filter {

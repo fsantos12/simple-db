@@ -127,6 +127,11 @@ impl UpdateQuery {
         }
     }
 
+    pub fn set_row(mut self, row: DbRow) -> Self {
+        self.updates.0.extend(row.0);
+        self
+    }
+
     pub fn set<F: Into<String>, V: Into<DbValue>>(mut self, field: F, value: V) -> Self {
         self.updates.insert(field, value);
         self

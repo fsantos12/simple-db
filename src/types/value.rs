@@ -3,7 +3,7 @@ use serde_json::Value as JsonValue;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DbValue {
     I8(Option<i8>), I16(Option<i16>), I32(Option<i32>), I64(Option<i64>), I128(Option<i128>),
     U8(Option<u8>), U16(Option<u16>), U32(Option<u32>), U64(Option<u64>), U128(Option<u128>),

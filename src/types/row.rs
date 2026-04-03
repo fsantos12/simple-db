@@ -5,7 +5,7 @@ use serde_json::Value as JsonValue;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::types::value::DbValue;
+use crate::types::{DbError, value::DbValue};
 
 #[derive(Debug, Clone, Default)]
 pub struct DbRow(pub HashMap<String, DbValue>);
@@ -105,4 +105,8 @@ impl FromIterator<(String, DbValue)> for DbRow {
     fn from_iter<I: IntoIterator<Item = (String, DbValue)>>(iter: I) -> Self {
         Self(iter.into_iter().collect())
     }
+}
+
+pub trait FromDbRow: Sized {
+    fn from_db_row(row: DbRow) -> Result<Self, DbError>;
 }

@@ -1,6 +1,6 @@
 use std::cmp::Ordering;
 
-use crate::value::DbValue;
+use crate::types::DbValue;
 
 pub fn strict_partial_cmp(left: &DbValue, right: &DbValue) -> Option<Ordering> {
     macro_rules! compare_inner {

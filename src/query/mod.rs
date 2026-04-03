@@ -1,6 +1,6 @@
 use crate::{query::{
     filters::FilterDefinition, groups::GroupDefinition, projections::ProjectionDefinition, sorts::SortDefinition
-}, value::DbValue};
+}, types::{DbRow, DbValue}};
 
 pub mod projections;
 pub mod filters;
@@ -71,7 +71,7 @@ impl FindQuery {
 #[derive(Debug, Clone)]
 pub struct InsertQuery {
     pub collection: String,
-    pub values: Vec<Vec<(String, DbValue)>>
+    pub values: Vec<DbRow>
 }
 
 impl InsertQuery {
@@ -82,33 +82,29 @@ impl InsertQuery {
         }
     }
 
-    pub fn insert<I, K, V>(mut self, row: I) -> Self 
-    where 
-        I: IntoIterator<Item = (K, V)>, 
-        K: Into<String>, 
-        V: Into<DbValue> 
-    {
-        self.values.push(
-            row.into_iter()
-               .map(|(k, v)| (k.into(), v.into()))
-               .collect()
-        );
+    pub fn add_row(mut self, row: DbRow) -> Self {
+        self.values.push(row);
         self
     }
 
-    pub fn bulk_insert<I, R, K, V>(mut self, rows: I) -> Self 
-    where 
-        I: IntoIterator<Item = R>, 
-        R: IntoIterator<Item = (K, V)>, 
-        K: Into<String>, 
-        V: Into<DbValue> 
-    {
-        self.values.extend(
-            rows.into_iter().map(|row| {
-                row.into_iter().map(|(k, v)| (k.into(), v.into())).collect()
-            })
-        );
+    pub fn add_rows<I>(mut self, rows: I) -> Self 
+    where I: IntoIterator<Item = DbRow> {
+        self.values.extend(rows);
         self
+    }
+
+    pub fn insert<I, K, V>(self, row: I) -> Self
+    where I: IntoIterator<Item = (K, V)>, K: Into<String>, V: Into<DbValue> {
+        let db_row: DbRow = row.into_iter().map(|(k, v)| (k.into(), v.into())).collect();
+        self.add_row(db_row)
+    }
+
+    pub fn bulk_insert<I, R, K, V>(self, rows: I) -> Self
+    where I: IntoIterator<Item = R>, R: IntoIterator<Item = (K, V)>, K: Into<String>, V: Into<DbValue> {
+        let prepared_rows = rows.into_iter().map(|row| {
+            row.into_iter().map(|(k, v)| (k.into(), v.into())).collect::<DbRow>()
+        });
+        self.add_rows(prepared_rows)
     }
 }
 
@@ -118,7 +114,7 @@ impl InsertQuery {
 #[derive(Debug, Clone)]
 pub struct UpdateQuery {
     pub collection: String,
-    pub updates: Vec<(String, DbValue)>,
+    pub updates: DbRow,
     pub filters: FilterDefinition,
 }
 
@@ -126,25 +122,21 @@ impl UpdateQuery {
     pub fn new(collection: impl Into<String>) -> Self {
         Self {
             collection: collection.into(),
-            updates: Vec::new(),
+            updates: DbRow::new(),
             filters: FilterDefinition::empty(),
         }
     }
 
     pub fn set<F: Into<String>, V: Into<DbValue>>(mut self, field: F, value: V) -> Self {
-        self.updates.push((field.into(), value.into()));
+        self.updates.insert(field, value);
         self
     }
 
     pub fn set_values<I, K, V>(mut self, values: I) -> Self 
-    where 
-        I: IntoIterator<Item = (K, V)>, 
-        K: Into<String>, 
-        V: Into<DbValue> 
-    {
-        self.updates.extend(
-            values.into_iter().map(|(k, v)| (k.into(), v.into()))
-        );
+    where I: IntoIterator<Item = (K, V)>, K: Into<String>, V: Into<DbValue> {
+        for (k, v) in values {
+            self.updates.insert(k, v);
+        }
         self
     }
 

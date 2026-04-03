@@ -1,4 +1,4 @@
-use crate::{query::filters::filter::Filter, value::DbValue};
+use crate::{query::filters::filter::Filter, types::DbValue};
 
 #[derive(Debug, Clone, Default)]
 pub struct FilterDefinition(Vec<Filter>);

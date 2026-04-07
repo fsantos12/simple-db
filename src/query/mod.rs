@@ -116,6 +116,12 @@ impl InsertQuery {
         }
         self
     }
+
+    /// Directly inserts pre-built DbRow objects.
+    pub fn values(mut self, rows: Vec<DbRow>) -> Self {
+        self.values.extend(rows);
+        self
+    }
 }
 
 // ==========================================

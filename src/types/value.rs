@@ -88,3 +88,99 @@ impl From<Option<&str>> for DbValue {
         DbValue::String(val.map(|s| Box::new(s.to_string())))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_null_with_some_values() {
+        assert!(!DbValue::I32(Some(42)).is_null());
+        assert!(!DbValue::String(Some(Box::new("hello".to_string()))).is_null());
+        assert!(!DbValue::Bool(Some(true)).is_null());
+    }
+
+    #[test]
+    fn test_is_null_with_none_values() {
+        assert!(DbValue::I32(None).is_null());
+        assert!(DbValue::String(None).is_null());
+        assert!(DbValue::Bool(None).is_null());
+    }
+
+    #[test]
+    fn test_conversion_from_primitive_types() {
+        let val: DbValue = 42i32.into();
+        assert_eq!(val, DbValue::I32(Some(42)));
+
+        let val: DbValue = true.into();
+        assert_eq!(val, DbValue::Bool(Some(true)));
+
+        let val: DbValue = 3.14f64.into();
+        assert_eq!(val, DbValue::F64(Some(3.14)));
+    }
+
+    #[test]
+    fn test_conversion_from_string() {
+        let val: DbValue = "hello".into();
+        assert_eq!(val, DbValue::String(Some(Box::new("hello".to_string()))));
+
+        let val: DbValue = String::from("world").into();
+        assert_eq!(val, DbValue::String(Some(Box::new("world".to_string()))));
+    }
+
+    #[test]
+    fn test_conversion_from_option() {
+        let val: DbValue = Some(42i32).into();
+        assert_eq!(val, DbValue::I32(Some(42)));
+
+        let val: DbValue = None::<i32>.into();
+        assert_eq!(val, DbValue::I32(None));
+    }
+
+    #[test]
+    fn test_conversion_from_option_string() {
+        let val: DbValue = Some("hello").into();
+        assert_eq!(val, DbValue::String(Some(Box::new("hello".to_string()))));
+
+        let val: DbValue = None::<&str>.into();
+        assert_eq!(val, DbValue::String(None));
+    }
+
+    #[test]
+    fn test_uuid_conversion() {
+        let uuid = Uuid::nil();
+        let val: DbValue = uuid.into();
+        assert!(!val.is_null());
+        
+        let val: DbValue = Some(uuid).into();
+        assert!(!val.is_null());
+    }
+
+    #[test]
+    fn test_decimal_conversion() {
+        let dec = Decimal::from(123);
+        let val: DbValue = dec.into();
+        assert!(!val.is_null());
+    }
+
+    #[test]
+    fn test_datetime_conversion() {
+        let now = Utc::now();
+        let val: DbValue = now.into();
+        assert!(!val.is_null());
+    }
+
+    #[test]
+    fn test_json_conversion() {
+        let json = serde_json::json!({"key": "value"});
+        let val: DbValue = json.into();
+        assert!(!val.is_null());
+    }
+
+    #[test]
+    fn test_bytes_conversion() {
+        let bytes = vec![1, 2, 3, 4, 5];
+        let val: DbValue = bytes.into();
+        assert!(!val.is_null());
+    }
+}

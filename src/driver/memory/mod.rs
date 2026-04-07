@@ -164,3 +164,324 @@ impl Driver for MemoryDriver {
     async fn transaction_commit(&self) -> Result<(), DbError> { Ok(()) }
     async fn transaction_rollback(&self) -> Result<(), DbError> { Ok(()) }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_row(name: &str, age: i32) -> DbRow {
+        let mut row = DbRow::new();
+        row.insert("name", name);
+        row.insert("age", age);
+        row
+    }
+
+    #[tokio::test]
+    async fn test_insert_single_row() {
+        let driver = MemoryDriver::new();
+        let mut row = DbRow::new();
+        row.insert("id", 1i32);
+        row.insert("name", "Alice");
+
+        let query = InsertQuery::new("users").values(vec![row]);
+        let result = driver.insert(query).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_insert_multiple_rows() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 25),
+            create_test_row("Charlie", 35),
+        ];
+
+        let query = InsertQuery::new("users").values(rows);
+        let result = driver.insert(query).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 3);
+    }
+
+    #[tokio::test]
+    async fn test_find_all_rows() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 25),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users");
+        let result = driver.find(query).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_find_nonexistent_collection() {
+        let driver = MemoryDriver::new();
+        let query = FindQuery::new("nonexistent");
+        let result = driver.find(query).await;
+
+        assert!(result.is_err());
+        assert!(matches!(result, Err(DbError::NotFound)));
+    }
+
+    #[tokio::test]
+    async fn test_find_with_eq_filter() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 30),
+            create_test_row("Charlie", 25),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users")
+            .filter(|fb| fb.eq("age", 30));
+        
+        let result = driver.find(query).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_find_with_limit() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 25),
+            create_test_row("Charlie", 35),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users").limit(2);
+        let result = driver.find(query).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_find_with_offset() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 25),
+            create_test_row("Charlie", 35),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users").offset(1);
+        let result = driver.find(query).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_find_with_limit_and_offset() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 25),
+            create_test_row("Charlie", 35),
+            create_test_row("Diana", 28),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users").offset(1).limit(2);
+        let result = driver.find(query).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_update_single_row() {
+        let driver = MemoryDriver::new();
+        driver.insert(InsertQuery::new("users").values(vec![create_test_row("Alice", 30)])).await.unwrap();
+
+        let mut updates = DbRow::new();
+        updates.insert("age", 31i32);
+
+        let query = UpdateQuery::new("users")
+            .set_row(updates)
+            .with_filters(vec![Filter::Eq(Box::new("name".to_string()), DbValue::String(Some(Box::new("Alice".to_string()))))]);
+
+        let result = driver.update(query).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_update_multiple_rows() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 30),
+            create_test_row("Charlie", 25),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let mut updates = DbRow::new();
+        updates.insert("age", 31i32);
+
+        let query = UpdateQuery::new("users")
+            .set_row(updates)
+            .with_filters(vec![Filter::Eq(Box::new("age".to_string()), DbValue::I32(Some(30)))]);
+
+        let result = driver.update(query).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_update_nonexistent_collection() {
+        let driver = MemoryDriver::new();
+        let mut updates = DbRow::new();
+        updates.insert("age", 31i32);
+
+        let query = UpdateQuery::new("nonexistent")
+            .set_row(updates)
+            .with_filters(vec![]);
+
+        let result = driver.update(query).await;
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_delete_single_row() {
+        let driver = MemoryDriver::new();
+        driver.insert(InsertQuery::new("users").values(vec![create_test_row("Alice", 30)])).await.unwrap();
+
+        let query = DeleteQuery::new("users")
+            .with_filters(vec![Filter::Eq(Box::new("name".to_string()), DbValue::String(Some(Box::new("Alice".to_string()))))]);
+
+        let result = driver.delete(query).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+
+        // Verify deletion
+        let find_result = driver.find(FindQuery::new("users")).await;
+        assert!(find_result.is_ok());
+        assert_eq!(find_result.unwrap().len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_delete_multiple_rows() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 30),
+            create_test_row("Charlie", 25),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = DeleteQuery::new("users")
+            .with_filters(vec![Filter::Eq(Box::new("age".to_string()), DbValue::I32(Some(30)))]);
+
+        let result = driver.delete(query).await;
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 2);
+
+        // Verify remaining rows
+        let find_result = driver.find(FindQuery::new("users")).await;
+        assert_eq!(find_result.unwrap().len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_delete_nonexistent_collection() {
+        let driver = MemoryDriver::new();
+        let query = DeleteQuery::new("nonexistent").with_filters(vec![]);
+        let result = driver.delete(query).await;
+
+        assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_is_null_filter() {
+        let driver = MemoryDriver::new();
+        let mut row1 = DbRow::new();
+        row1.insert("name", "Alice");
+        row1.insert("email", None::<String>);
+
+        let mut row2 = DbRow::new();
+        row2.insert("name", "Bob");
+        row2.insert("email", "bob@example.com");
+
+        driver.insert(InsertQuery::new("users").values(vec![row1, row2])).await.unwrap();
+
+        let query = FindQuery::new("users")
+            .filter(|fb| fb.is_null("email"));
+
+        let result = driver.find(query).await.unwrap();
+        assert_eq!(result.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_in_filter() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 30),
+            create_test_row("Bob", 25),
+            create_test_row("Charlie", 35),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users")
+            .filter(|fb| fb.is_in("age", vec![25i32, 35i32]));
+
+        let result = driver.find(query).await.unwrap();
+        assert_eq!(result.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn test_between_filter() {
+        let driver = MemoryDriver::new();
+        let rows = vec![
+            create_test_row("Alice", 20),
+            create_test_row("Bob", 30),
+            create_test_row("Charlie", 40),
+        ];
+
+        driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
+
+        let query = FindQuery::new("users")
+            .filter(|fb| fb.between("age", 25, 35));
+
+        let result = driver.find(query).await.unwrap();
+        assert_eq!(result.len(), 1); // Only Bob (30)
+    }
+
+    #[tokio::test]
+    async fn test_contains_filter() {
+        let driver = MemoryDriver::new();
+        let mut row1 = DbRow::new();
+        row1.insert("name", "Alice Johnson");
+
+        let mut row2 = DbRow::new();
+        row2.insert("name", "Bob Smith");
+
+        driver.insert(InsertQuery::new("users").values(vec![row1, row2])).await.unwrap();
+
+        let query = FindQuery::new("users")
+            .filter(|fb| fb.contains("name", "Johnson"));
+
+        let result = driver.find(query).await.unwrap();
+        assert_eq!(result.len(), 1);
+    }
+}

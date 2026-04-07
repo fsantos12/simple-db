@@ -138,3 +138,192 @@ impl IntoIterator for DbRow {
 pub trait FromDbRow: Sized {
     fn from_db_row(row: DbRow) -> Result<Self, DbError>;
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_row_new() {
+        let row = DbRow::new();
+        assert_eq!(row.0.len(), 0);
+    }
+
+    #[test]
+    fn test_row_insert_and_get() {
+        let mut row = DbRow::new();
+        row.insert("age", 42i32);
+        row.insert("name", "Alice");
+        row.insert("active", true);
+
+        assert_eq!(row.get("age"), Some(&DbValue::I32(Some(42))));
+        assert_eq!(
+            row.get("name"),
+            Some(&DbValue::String(Some(Box::new("Alice".to_string()))))
+        );
+        assert_eq!(row.get("active"), Some(&DbValue::Bool(Some(true))));
+    }
+
+    #[test]
+    fn test_row_get_returns_none_for_missing_keys() {
+        let row = DbRow::new();
+        assert_eq!(row.get("nonexistent"), None);
+    }
+
+    #[test]
+    fn test_row_take() {
+        let mut row = DbRow::new();
+        row.insert("name", "Bob");
+        row.insert("age", 30i32);
+
+        let name = row.take("name");
+        assert_eq!(name, Some(DbValue::String(Some(Box::new("Bob".to_string())))));
+        
+        // After take, the field should be gone
+        assert!(row.get("name").is_none());
+        
+        // Other fields should remain
+        assert!(row.get("age").is_some());
+    }
+
+    #[test]
+    fn test_get_i32_helper() {
+        let mut row = DbRow::new();
+        row.insert("count", 100i32);
+
+        let val = row.get_i32("count");
+        assert!(val.is_ok());
+        assert_eq!(*val.unwrap(), 100);
+    }
+
+    #[test]
+    fn test_get_i32_returns_error_for_null() {
+        let mut row = DbRow::new();
+        row.insert("nullable_int", None::<i32>);
+
+        let val = row.get_i32("nullable_int");
+        assert!(val.is_err());
+    }
+
+    #[test]
+    fn test_get_i32_returns_error_for_wrong_type() {
+        let mut row = DbRow::new();
+        row.insert("name", "not_an_int");
+
+        let val = row.get_i32("name");
+        assert!(val.is_err());
+    }
+
+    #[test]
+    fn test_get_string_helper() {
+        let mut row = DbRow::new();
+        row.insert("name", "Charlie");
+
+        let val = row.get_string("name");
+        assert!(val.is_ok());
+        assert_eq!(*val.unwrap(), "Charlie");
+    }
+
+    #[test]
+    fn test_take_i32_helper() {
+        let mut row = DbRow::new();
+        row.insert("score", 95i32);
+
+        let val = row.take_i32("score");
+        assert!(val.is_ok());
+        assert_eq!(val.unwrap(), 95);
+        
+        // After take, field should be removed
+        assert!(row.get("score").is_none());
+    }
+
+    #[test]
+    fn test_take_string_helper() {
+        let mut row = DbRow::new();
+        row.insert("description", "A long description");
+
+        let val = row.take_string("description");
+        assert!(val.is_ok());
+        assert_eq!(val.unwrap(), "A long description");
+        
+        assert!(row.get("description").is_none());
+    }
+
+    #[test]
+    fn test_row_from_iter() {
+        let items = vec![
+            ("id".to_string(), DbValue::I64(Some(1))),
+            ("name".to_string(), DbValue::String(Some(Box::new("Diana".to_string())))),
+        ];
+
+        let row: DbRow = items.into_iter().collect();
+        assert_eq!(row.0.len(), 2);
+        assert!(row.get("id").is_some());
+        assert!(row.get("name").is_some());
+    }
+
+    #[test]
+    fn test_row_into_iter() {
+        let mut row = DbRow::new();
+        row.insert("x", 10i32);
+        row.insert("y", 20i32);
+
+        let mut count = 0;
+        for (key, val) in row {
+            count += 1;
+            assert!(["x", "y"].contains(&key.as_str()));
+            assert!(matches!(val, DbValue::I32(Some(_))));
+        }
+        
+        assert_eq!(count, 2);
+    }
+
+    #[test]
+    fn test_get_bool_helper() {
+        let mut row = DbRow::new();
+        row.insert("is_admin", true);
+
+        let val = row.get_bool("is_admin");
+        assert!(val.is_ok());
+        assert_eq!(*val.unwrap(), true);
+    }
+
+    #[test]
+    fn test_get_uuid_helper() {
+        let mut row = DbRow::new();
+        let uuid = Uuid::nil();
+        row.insert("id", uuid);
+
+        let val = row.get_uuid("id");
+        assert!(val.is_ok());
+        assert_eq!(*val.unwrap(), uuid);
+    }
+
+    #[test]
+    fn test_get_f64_helper() {
+        let mut row = DbRow::new();
+        row.insert("price", 19.99f64);
+
+        let val = row.get_f64("price");
+        assert!(val.is_ok());
+        assert_eq!(*val.unwrap(), 19.99);
+    }
+
+    #[test]
+    fn test_multiple_numeric_types() {
+        let mut row = DbRow::new();
+        row.insert("i8_val", 10i8);
+        row.insert("i16_val", 1000i16);
+        row.insert("i32_val", 100000i32);
+        row.insert("i64_val", 1000000000i64);
+        row.insert("u32_val", 42u32);
+        row.insert("f32_val", 1.5f32);
+
+        assert!(row.get_i8("i8_val").is_ok());
+        assert!(row.get_i16("i16_val").is_ok());
+        assert!(row.get_i32("i32_val").is_ok());
+        assert!(row.get_i64("i64_val").is_ok());
+        assert!(row.get_u32("u32_val").is_ok());
+        assert!(row.get_f32("f32_val").is_ok());
+    }
+}

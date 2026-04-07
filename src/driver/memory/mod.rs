@@ -45,15 +45,51 @@ impl MemoryDriver {
 
             // --- Comparisons (Uses strict_eq/strict_partial_cmp) ---
             Filter::Eq(field, val) => row.get(field).is_some_and(|rv| strict_eq(rv, val)),
+            Filter::Neq(field, val) => row.get(field).is_some_and(|rv|!strict_eq(rv, val)),
             Filter::Gt(field, val) => row.get(field).is_some_and(|rv| strict_partial_cmp(rv, val) == Some(Ordering::Greater)),
+            Filter::Gte(field, val) => row.get(field).is_some_and(|rv| matches!(strict_partial_cmp(rv, val), Some(Ordering::Greater | Ordering::Equal))),
             Filter::Lt(field, val) => row.get(field).is_some_and(|rv| strict_partial_cmp(rv, val) == Some(Ordering::Less)),
+            Filter::Lte(field, val) => row.get(field).is_some_and(|rv| matches!(strict_partial_cmp(rv, val), Some(Ordering::Less | Ordering::Equal))),
 
-            // --- Recursive Nodes (Handles Boxed collections) ---
-            Filter::And(def) => def.iter().all(|f| self.evaluate_node(row, f)),
-            Filter::Or(def) => def.iter().any(|f| self.evaluate_node(row, f)),
-            Filter::Not(f) =>!self.evaluate_node(row, f),
+            // --- Pattern Matching ---
+            Filter::StartsWith(field, val) => {
+                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(prefix))) = (row.get(field), val) {
+                    text.starts_with(&**prefix)
+                } else { false }
+            },
+            Filter::NotStartsWith(field, val) => {
+                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(prefix))) = (row.get(field), val) {
+                   !text.starts_with(&**prefix)
+                } else { false }
+            },
+            Filter::EndsWith(field, val) => {
+                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(suffix))) = (row.get(field), val) {
+                    text.ends_with(&**suffix)
+                } else { false }
+            },
+            Filter::NotEndsWith(field, val) => {
+                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(suffix))) = (row.get(field), val) {
+                   !text.ends_with(&**suffix)
+                } else { false }
+            },
+            Filter::Contains(field, val) => {
+                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(sub))) = (row.get(field), val) {
+                    text.contains(&**sub)
+                } else { false }
+            },
+            Filter::NotContains(field, val) => {
+                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(sub))) = (row.get(field), val) {
+                   !text.contains(&**sub)
+                } else { false }
+            },
 
-            // --- Advanced Logic ---
+            // --- Regex Matching ---
+            Filter::Regex(_field, _pattern) => {
+                // TODO: Implement regex matching with regex crate
+                false
+            },
+
+            // --- Range Checks ---
             Filter::Between(field, range) => {
                 let (low, high) = &**range; // Double deref for the Boxed tuple
                 row.get(field).is_some_and(|rv| {
@@ -62,14 +98,23 @@ impl MemoryDriver {
                     gte && lte
                 })
             },
-            Filter::In(field, vals) => row.get(field).is_some_and(|rv| vals.iter().any(|v| strict_eq(rv, v))),
-            
-            Filter::Contains(field, val) => {
-                if let (Some(DbValue::String(Some(text))), DbValue::String(Some(sub))) = (row.get(field), val) {
-                    text.contains(&**sub)
-                } else { false }
+            Filter::NotBetween(field, range) => {
+                let (low, high) = &**range;
+                row.get(field).is_some_and(|rv| {
+                    let gte = matches!(strict_partial_cmp(rv, low), Some(Ordering::Greater | Ordering::Equal));
+                    let lte = matches!(strict_partial_cmp(rv, high), Some(Ordering::Less | Ordering::Equal));
+                   !(gte && lte)
+                })
             },
-            _ => false,
+
+            // --- Set Membership ---
+            Filter::In(field, vals) => row.get(field).is_some_and(|rv| vals.iter().any(|v| strict_eq(rv, v))),
+            Filter::NotIn(field, vals) => row.get(field).is_some_and(|rv| vals.iter().all(|v|!strict_eq(rv, v))),
+
+            // --- Logical Operators ---
+            Filter::And(def) => def.iter().all(|f| self.evaluate_node(row, f)),
+            Filter::Or(def) => def.iter().any(|f| self.evaluate_node(row, f)),
+            Filter::Not(f) =>!self.evaluate_node(row, f),
         }
     }
 

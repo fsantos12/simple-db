@@ -25,6 +25,7 @@ async-trait = "0.1"
 # --- Collections ---
 smallvec = "1.11"
 once_cell = "1.19"
+smol_str = "0.3"
 
 # --- Macros ---
 simple-db-macro = { path = "../simple-db-macro" }

@@ -4,6 +4,7 @@
 //! queries and controlling result set partitioning.
 
 use crate::query::groups::GroupDefinition;
+use smol_str::SmolStr;
 
 /// A fluent builder for constructing a GROUP BY clause.
 #[derive(Debug, Clone, Default)]
@@ -16,15 +17,15 @@ impl GroupBuilder {
         Self { items: GroupDefinition::new() }
     }
 
-    pub fn field<F: Into<String>>(mut self, field: F) -> Self {
-        self.items.push(Box::new(field.into()));
+    pub fn field<F: Into<SmolStr>>(mut self, field: F) -> Self {
+        self.items.push(field.into());
         self
     }
 
     pub fn fields<F, I>(mut self, fields: I) -> Self 
-    where F: Into<String>, I: IntoIterator<Item = F> {
+    where F: Into<SmolStr>, I: IntoIterator<Item = F> {
         for f in fields {
-            self.items.push(Box::new(f.into()));
+            self.items.push(f.into());
         }
         self
     }

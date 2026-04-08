@@ -6,6 +6,7 @@
 //! combined with implicit AND logic.
 
 use crate::{query::filters::{Filter, FilterDefinition}, types::DbValue};
+use smol_str::SmolStr;
 
 pub struct FilterBuilder {
     items: FilterDefinition,
@@ -27,92 +28,92 @@ impl FilterBuilder {
     }
 
     // --- Null Checks ---
-    pub fn is_null<F: Into<String>>(self, field: F) -> Self {
-        self.add(Filter::IsNull(Box::new(field.into())))
+    pub fn is_null<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Filter::IsNull(field.into()))
     }
 
-    pub fn is_not_null<F: Into<String>>(self, field: F) -> Self {
-        self.add(Filter::IsNotNull(Box::new(field.into())))
+    pub fn is_not_null<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Filter::IsNotNull(field.into()))
     }
 
     // --- Basic Comparisons ---
-    pub fn eq<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Eq(Box::new(field.into()), value.into()))
+    pub fn eq<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Eq(field.into(), value.into()))
     }
 
-    pub fn neq<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Neq(Box::new(field.into()), value.into()))
+    pub fn neq<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Neq(field.into(), value.into()))
     }
 
-    pub fn lt<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Lt(Box::new(field.into()), value.into()))
+    pub fn lt<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Lt(field.into(), value.into()))
     }
 
-    pub fn lte<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Lte(Box::new(field.into()), value.into()))
+    pub fn lte<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Lte(field.into(), value.into()))
     }
 
-    pub fn gt<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Gt(Box::new(field.into()), value.into()))
+    pub fn gt<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Gt(field.into(), value.into()))
     }
 
-    pub fn gte<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Gte(Box::new(field.into()), value.into()))
+    pub fn gte<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Gte(field.into(), value.into()))
     }
 
     // --- Pattern Matching ---
-    pub fn starts_with<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::StartsWith(Box::new(field.into()), value.into()))
+    pub fn starts_with<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::StartsWith(field.into(), value.into()))
     }
 
-    pub fn not_starts_with<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::NotStartsWith(Box::new(field.into()), value.into()))
+    pub fn not_starts_with<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::NotStartsWith(field.into(), value.into()))
     }
 
-    pub fn contains<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::Contains(Box::new(field.into()), value.into()))
+    pub fn contains<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::Contains(field.into(), value.into()))
     }
 
-    pub fn not_contains<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::NotContains(Box::new(field.into()), value.into()))
+    pub fn not_contains<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::NotContains(field.into(), value.into()))
     }
 
-    pub fn ends_with<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::EndsWith(Box::new(field.into()), value.into()))
+    pub fn ends_with<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::EndsWith(field.into(), value.into()))
     }
 
-    pub fn not_ends_with<F: Into<String>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
-        self.add(Filter::NotEndsWith(Box::new(field.into()), value.into()))
+    pub fn not_ends_with<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, value: V) -> Self {
+        self.add(Filter::NotEndsWith(field.into(), value.into()))
     }
 
-    pub fn regex<F: Into<String>, R: Into<String>>(self, field: F, regex: R) -> Self {
-        self.add(Filter::Regex(Box::new(field.into()), Box::new(regex.into())))
+    pub fn regex<F: Into<SmolStr>, R: Into<SmolStr>>(self, field: F, regex: R) -> Self {
+        self.add(Filter::Regex(field.into(), regex.into()))
     }
 
     // --- Range Checks ---
-    pub fn between<F: Into<String>, V: Into<DbValue>>(self, field: F, low: V, high: V) -> Self {
+    pub fn between<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, low: V, high: V) -> Self {
         self.add(Filter::Between(
-            Box::new(field.into()), 
+            field.into(),
             Box::new((low.into(), high.into()))
         ))
     }
 
-    pub fn not_between<F: Into<String>, V: Into<DbValue>>(self, field: F, low: V, high: V) -> Self {
+    pub fn not_between<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, low: V, high: V) -> Self {
         self.add(Filter::NotBetween(
-            Box::new(field.into()), 
+            field.into(),
             Box::new((low.into(), high.into()))
         ))
     }
 
     // --- Set Membership ---
-    pub fn is_in<F: Into<String>, V: Into<DbValue>>(self, field: F, values: Vec<V>) -> Self {
+    pub fn is_in<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, values: Vec<V>) -> Self {
         let v_vec: Vec<DbValue> = values.into_iter().map(Into::into).collect();
-        self.add(Filter::In(Box::new(field.into()), Box::new(v_vec)))
+        self.add(Filter::In(field.into(), Box::new(v_vec)))
     }
 
-    pub fn not_in<F: Into<String>, V: Into<DbValue>>(self, field: F, values: Vec<V>) -> Self {
+    pub fn not_in<F: Into<SmolStr>, V: Into<DbValue>>(self, field: F, values: Vec<V>) -> Self {
         let v_vec: Vec<DbValue> = values.into_iter().map(Into::into).collect();
-        self.add(Filter::NotIn(Box::new(field.into()), Box::new(v_vec)))
+        self.add(Filter::NotIn(field.into(), Box::new(v_vec)))
     }
 
     // --- Logical Grouping (Closures) ---

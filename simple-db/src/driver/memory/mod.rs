@@ -11,6 +11,7 @@ use std::{cmp::Ordering, collections::HashMap, sync::{Arc, RwLock}};
 use async_trait::async_trait;
 use rand::seq::SliceRandom;
 use rand::rngs::ThreadRng;
+use regex::Regex;
 
 use crate::{
     driver::{driver::Driver, memory::comparison::{strict_eq, strict_partial_cmp}}, 
@@ -31,72 +32,105 @@ impl MemoryDriver {
         }
     }
 
+    fn build_regex_cache(&self, filters: &FilterDefinition) -> HashMap<String, Regex> {
+        fn walk(def: &FilterDefinition, out: &mut HashMap<String, Regex>) {
+            for f in def {
+                match f {
+                    Filter::Regex(_field, pattern) => {
+                        let pat = pattern.as_str();
+                        if !out.contains_key(pat) {
+                            if let Ok(re) = Regex::new(pat) {
+                                out.insert(pat.to_string(), re);
+                            }
+                        }
+                    }
+                    Filter::And(inner) | Filter::Or(inner) => walk(inner, out),
+                    Filter::Not(inner) => match &**inner {
+                        Filter::And(inner) | Filter::Or(inner) => walk(inner, out),
+                        Filter::Regex(_field, pattern) => {
+                            let pat = pattern.as_str();
+                            if !out.contains_key(pat) {
+                                if let Ok(re) = Regex::new(pat) {
+                                    out.insert(pat.to_string(), re);
+                                }
+                            }
+                        }
+                        _ => {}
+                    },
+                    _ => {}
+                }
+            }
+        }
+
+        let mut cache = HashMap::new();
+        walk(filters, &mut cache);
+        cache
+    }
+
     /// Evaluates the entire FilterDefinition (implicit AND) against a row.
-    fn matches_filter(&self, row: &DbRow, filters: &FilterDefinition) -> bool {
-        filters.iter().all(|f| self.evaluate_node(row, f))
+    fn matches_filter(&self, row: &DbRow, filters: &FilterDefinition, regex_cache: &HashMap<String, Regex>) -> bool {
+        filters.iter().all(|f| self.evaluate_node(row, f, regex_cache))
     }
 
     /// Recursively traverses the Filter AST.
-    fn evaluate_node(&self, row: &DbRow, filter: &Filter) -> bool {
+    fn evaluate_node(&self, row: &DbRow, filter: &Filter, regex_cache: &HashMap<String, Regex>) -> bool {
         match filter {
             // --- Null Checks ---
-            Filter::IsNull(field) => row.get(field).map_or(true, |v| v.is_null()),
-            Filter::IsNotNull(field) => row.get(field).map_or(false, |v|!v.is_null()),
+            Filter::IsNull(field) => row.get(field.as_str()).map_or(true, |v| v.is_null()),
+            Filter::IsNotNull(field) => row.get(field.as_str()).map_or(false, |v| !v.is_null()),
 
             // --- Comparisons (Uses strict_eq/strict_partial_cmp) ---
-            Filter::Eq(field, val) => row.get(field).is_some_and(|rv| strict_eq(rv, val)),
-            Filter::Neq(field, val) => row.get(field).is_some_and(|rv|!strict_eq(rv, val)),
-            Filter::Gt(field, val) => row.get(field).is_some_and(|rv| strict_partial_cmp(rv, val) == Some(Ordering::Greater)),
-            Filter::Gte(field, val) => row.get(field).is_some_and(|rv| matches!(strict_partial_cmp(rv, val), Some(Ordering::Greater | Ordering::Equal))),
-            Filter::Lt(field, val) => row.get(field).is_some_and(|rv| strict_partial_cmp(rv, val) == Some(Ordering::Less)),
-            Filter::Lte(field, val) => row.get(field).is_some_and(|rv| matches!(strict_partial_cmp(rv, val), Some(Ordering::Less | Ordering::Equal))),
+            Filter::Eq(field, val) => row.get(field.as_str()).is_some_and(|rv| strict_eq(rv, val)),
+            Filter::Neq(field, val) => row.get(field.as_str()).is_some_and(|rv| !strict_eq(rv, val)),
+            Filter::Gt(field, val) => row.get(field.as_str()).is_some_and(|rv| strict_partial_cmp(rv, val) == Some(Ordering::Greater)),
+            Filter::Gte(field, val) => row.get(field.as_str()).is_some_and(|rv| matches!(strict_partial_cmp(rv, val), Some(Ordering::Greater | Ordering::Equal))),
+            Filter::Lt(field, val) => row.get(field.as_str()).is_some_and(|rv| strict_partial_cmp(rv, val) == Some(Ordering::Less)),
+            Filter::Lte(field, val) => row.get(field.as_str()).is_some_and(|rv| matches!(strict_partial_cmp(rv, val), Some(Ordering::Less | Ordering::Equal))),
 
             // --- Pattern Matching ---
             Filter::StartsWith(field, val) => {
-                if let (Some(DbValue::String(text)), DbValue::String(prefix)) = (row.get(field), val) {
+                if let (Some(DbValue::String(text)), DbValue::String(prefix)) = (row.get(field.as_str()), val) {
                     text.starts_with(prefix)
                 } else { false }
             },
             Filter::NotStartsWith(field, val) => {
-                if let (Some(DbValue::String(text)), DbValue::String(prefix)) = (row.get(field), val) {
+                if let (Some(DbValue::String(text)), DbValue::String(prefix)) = (row.get(field.as_str()), val) {
                    !text.starts_with(prefix)
                 } else { false }
             },
             Filter::EndsWith(field, val) => {
-                if let (Some(DbValue::String(text)), DbValue::String(suffix)) = (row.get(field), val) {
+                if let (Some(DbValue::String(text)), DbValue::String(suffix)) = (row.get(field.as_str()), val) {
                     text.ends_with(suffix)
                 } else { false }
             },
             Filter::NotEndsWith(field, val) => {
-                if let (Some(DbValue::String(text)), DbValue::String(suffix)) = (row.get(field), val) {
+                if let (Some(DbValue::String(text)), DbValue::String(suffix)) = (row.get(field.as_str()), val) {
                    !text.ends_with(suffix)
                 } else { false }
             },
             Filter::Contains(field, val) => {
-                if let (Some(DbValue::String(text)), DbValue::String(sub)) = (row.get(field), val) {
+                if let (Some(DbValue::String(text)), DbValue::String(sub)) = (row.get(field.as_str()), val) {
                     text.contains(sub)
                 } else { false }
             },
             Filter::NotContains(field, val) => {
-                if let (Some(DbValue::String(text)), DbValue::String(sub)) = (row.get(field), val) {
+                if let (Some(DbValue::String(text)), DbValue::String(sub)) = (row.get(field.as_str()), val) {
                    !text.contains(sub)
                 } else { false }
             },
 
             // --- Regex Matching ---
             Filter::Regex(field, pattern) => {
-                let Some(DbValue::String(text)) = row.get(field) else { return false; };
-                // Compile per-evaluation for now (correctness first).
-                // If this becomes hot, we can add a small cache keyed by pattern.
-                regex::Regex::new(&**pattern)
-                    .ok()
+                let Some(DbValue::String(text)) = row.get(field.as_str()) else { return false; };
+                regex_cache
+                    .get(pattern.as_str())
                     .is_some_and(|re| re.is_match(text))
             },
 
             // --- Range Checks ---
             Filter::Between(field, range) => {
                 let (low, high) = &**range; // Double deref for the Boxed tuple
-                row.get(field).is_some_and(|rv| {
+                row.get(field.as_str()).is_some_and(|rv| {
                     let gte = matches!(strict_partial_cmp(rv, low), Some(Ordering::Greater | Ordering::Equal));
                     let lte = matches!(strict_partial_cmp(rv, high), Some(Ordering::Less | Ordering::Equal));
                     gte && lte
@@ -104,7 +138,7 @@ impl MemoryDriver {
             },
             Filter::NotBetween(field, range) => {
                 let (low, high) = &**range;
-                row.get(field).is_some_and(|rv| {
+                row.get(field.as_str()).is_some_and(|rv| {
                     let gte = matches!(strict_partial_cmp(rv, low), Some(Ordering::Greater | Ordering::Equal));
                     let lte = matches!(strict_partial_cmp(rv, high), Some(Ordering::Less | Ordering::Equal));
                    !(gte && lte)
@@ -112,13 +146,13 @@ impl MemoryDriver {
             },
 
             // --- Set Membership ---
-            Filter::In(field, vals) => row.get(field).is_some_and(|rv| vals.iter().any(|v| strict_eq(rv, v))),
-            Filter::NotIn(field, vals) => row.get(field).is_some_and(|rv| vals.iter().all(|v|!strict_eq(rv, v))),
+            Filter::In(field, vals) => row.get(field.as_str()).is_some_and(|rv| vals.iter().any(|v| strict_eq(rv, v))),
+            Filter::NotIn(field, vals) => row.get(field.as_str()).is_some_and(|rv| vals.iter().all(|v| !strict_eq(rv, v))),
 
             // --- Logical Operators ---
-            Filter::And(def) => def.iter().all(|f| self.evaluate_node(row, f)),
-            Filter::Or(def) => def.iter().any(|f| self.evaluate_node(row, f)),
-            Filter::Not(f) =>!self.evaluate_node(row, f),
+            Filter::And(def) => def.iter().all(|f| self.evaluate_node(row, f, regex_cache)),
+            Filter::Or(def) => def.iter().any(|f| self.evaluate_node(row, f, regex_cache)),
+            Filter::Not(f) => !self.evaluate_node(row, f, regex_cache),
         }
     }
 
@@ -142,7 +176,7 @@ impl MemoryDriver {
                     _ => continue,
                 };
 
-                let cmp = match (a.get(field), b.get(field)) {
+                let cmp = match (a.get(field.as_str()), b.get(field.as_str())) {
                     (None, None) => Ordering::Equal,
                     (None, Some(_)) => if nulls_first { Ordering::Less } else { Ordering::Greater },
                     (Some(_), None) => if nulls_first { Ordering::Greater } else { Ordering::Less },
@@ -163,9 +197,10 @@ impl Driver for MemoryDriver {
     async fn find(&self, query: FindQuery) -> Result<Vec<DbRow>, DbError> {
         let storage = self.storage.read().map_err(|_| DbError::ConcurrencyError("Poisoned lock".into()))?;
         let table = storage.get(&query.collection).ok_or(DbError::NotFound)?;
+        let regex_cache = self.build_regex_cache(&query.filters);
 
         let mut results: Vec<DbRow> = table.iter()
-           .filter(|row| self.matches_filter(row, &query.filters))
+           .filter(|row| self.matches_filter(row, &query.filters, &regex_cache))
            .cloned()
            .collect();
 
@@ -193,10 +228,11 @@ impl Driver for MemoryDriver {
     async fn update(&self, query: UpdateQuery) -> Result<u64, DbError> {
         let mut storage = self.storage.write().map_err(|_| DbError::ConcurrencyError("Poisoned lock".into()))?;
         let table = storage.get_mut(&query.collection).ok_or(DbError::NotFound)?;
+        let regex_cache = self.build_regex_cache(&query.filters);
         
         let mut count = 0;
         for row in table.iter_mut() {
-            if self.matches_filter(row, &query.filters) {
+            if self.matches_filter(row, &query.filters, &regex_cache) {
                 for (k, v) in &query.updates.0 {
                     row.insert(k.clone(), v.clone());
                 }
@@ -209,9 +245,10 @@ impl Driver for MemoryDriver {
     async fn delete(&self, query: DeleteQuery) -> Result<u64, DbError> {
         let mut storage = self.storage.write().map_err(|_| DbError::ConcurrencyError("Poisoned lock".into()))?;
         let table = storage.get_mut(&query.collection).ok_or(DbError::NotFound)?;
+        let regex_cache = self.build_regex_cache(&query.filters);
         
         let initial_len = table.len();
-        table.retain(|row|!self.matches_filter(row, &query.filters));
+        table.retain(|row| !self.matches_filter(row, &query.filters, &regex_cache));
         Ok((initial_len - table.len()) as u64)
     }
 
@@ -224,6 +261,7 @@ impl Driver for MemoryDriver {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use smol_str::SmolStr;
 
     fn create_test_row(name: &str, age: i32) -> DbRow {
         let mut row = DbRow::new();
@@ -378,7 +416,7 @@ mod tests {
 
         let query = UpdateQuery::new("users")
             .set_row(updates)
-            .with_filters(vec![Filter::Eq(Box::new("name".to_string()), DbValue::String("Alice".to_string()))].into());
+            .with_filters(vec![Filter::Eq(SmolStr::new("name"), DbValue::String("Alice".to_string()))].into());
 
         let result = driver.update(query).await;
         assert!(result.is_ok());
@@ -401,7 +439,7 @@ mod tests {
 
         let query = UpdateQuery::new("users")
             .set_row(updates)
-            .with_filters(vec![Filter::Eq(Box::new("age".to_string()), DbValue::I32(30))].into());
+            .with_filters(vec![Filter::Eq(SmolStr::new("age"), DbValue::I32(30))].into());
 
         let result = driver.update(query).await;
         assert!(result.is_ok());
@@ -428,7 +466,7 @@ mod tests {
         driver.insert(InsertQuery::new("users").values(vec![create_test_row("Alice", 30)])).await.unwrap();
 
         let query = DeleteQuery::new("users")
-            .with_filters(vec![Filter::Eq(Box::new("name".to_string()), DbValue::String("Alice".to_string()))].into());
+            .with_filters(vec![Filter::Eq(SmolStr::new("name"), DbValue::String("Alice".to_string()))].into());
 
         let result = driver.delete(query).await;
         assert!(result.is_ok());
@@ -452,7 +490,7 @@ mod tests {
         driver.insert(InsertQuery::new("users").values(rows)).await.unwrap();
 
         let query = DeleteQuery::new("users")
-            .with_filters(vec![Filter::Eq(Box::new("age".to_string()), DbValue::I32(30))].into());
+            .with_filters(vec![Filter::Eq(SmolStr::new("age"), DbValue::I32(30))].into());
 
         let result = driver.delete(query).await;
         assert!(result.is_ok());

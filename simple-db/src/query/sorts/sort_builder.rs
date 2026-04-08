@@ -4,6 +4,7 @@
 //! directions and null value placement control. Also supports random ordering.
 
 use crate::query::sorts::sort::{Sort, SortDefinition};
+use smol_str::SmolStr;
 
 #[derive(Debug, Clone, Default)]
 pub struct SortBuilder {
@@ -22,29 +23,29 @@ impl SortBuilder {
     }
 
     // --- Basic ---
-    pub fn asc<F: Into<String>>(self, field: F) -> Self {
-        self.add(Sort::Asc(Box::new(field.into())))
+    pub fn asc<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Sort::Asc(field.into()))
     }
 
-    pub fn desc<F: Into<String>>(self, field: F) -> Self {
-        self.add(Sort::Desc(Box::new(field.into())))
+    pub fn desc<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Sort::Desc(field.into()))
     }
 
     // --- Null Handling ---
-    pub fn asc_nulls_first<F: Into<String>>(self, field: F) -> Self {
-        self.add(Sort::AscNullsFirst(Box::new(field.into())))
+    pub fn asc_nulls_first<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Sort::AscNullsFirst(field.into()))
     }
 
-    pub fn asc_nulls_last<F: Into<String>>(self, field: F) -> Self {
-        self.add(Sort::AscNullsLast(Box::new(field.into())))
+    pub fn asc_nulls_last<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Sort::AscNullsLast(field.into()))
     }
 
-    pub fn desc_nulls_first<F: Into<String>>(self, field: F) -> Self {
-        self.add(Sort::DescNullsFirst(Box::new(field.into())))
+    pub fn desc_nulls_first<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Sort::DescNullsFirst(field.into()))
     }
 
-    pub fn desc_nulls_last<F: Into<String>>(self, field: F) -> Self {
-        self.add(Sort::DescNullsLast(Box::new(field.into())))
+    pub fn desc_nulls_last<F: Into<SmolStr>>(self, field: F) -> Self {
+        self.add(Sort::DescNullsLast(field.into()))
     }
 
     // --- Special Cases ---

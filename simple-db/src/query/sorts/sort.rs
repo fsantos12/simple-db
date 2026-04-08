@@ -4,6 +4,7 @@
 //! directions, null placement control, and random ordering for sampling.
 
 use smallvec::SmallVec;
+use smol_str::SmolStr;
 
 /// Type alias for a list of sort specifications.
 /// Stack-allocated for up to 4 sorts; larger queries spill to heap automatically.
@@ -12,14 +13,14 @@ pub type SortDefinition = SmallVec<[Sort; 4]>;
 #[derive(Debug, Clone)]
 pub enum Sort {
     // --- Basic ---
-    Asc(Box<String>),
-    Desc(Box<String>),
+    Asc(SmolStr),
+    Desc(SmolStr),
 
     // --- Null Handling ---
-    AscNullsFirst(Box<String>),
-    AscNullsLast(Box<String>),
-    DescNullsFirst(Box<String>),
-    DescNullsLast(Box<String>),
+    AscNullsFirst(SmolStr),
+    AscNullsLast(SmolStr),
+    DescNullsFirst(SmolStr),
+    DescNullsLast(SmolStr),
 
     // --- Special Cases ---
     Random,

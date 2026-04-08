@@ -758,8 +758,18 @@ dependencies = [
  "rust_decimal",
  "serde",
  "serde_json",
+ "simple-db-macro",
  "tokio",
  "uuid",
+]
+
+[[package]]
+name = "simple-db-macro"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.117",
 ]
 
 [[package]]

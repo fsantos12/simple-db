@@ -1,10 +1,11 @@
-//! Core driver interface and transaction handling.
+﻿//! Core driver interface and transaction handling.
 //!
 //! The `Driver` trait defines the abstraction layer for database backends.
 //! Implementations (Memory, PostgreSQL, MongoDB, etc.) provide concrete query
 //! execution and transaction management logic.
 
 use std::sync::Arc;
+use std::future::Future;
 
 use async_trait::async_trait;
 

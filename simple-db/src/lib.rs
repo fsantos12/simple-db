@@ -1,4 +1,4 @@
-//! # simple-db
+﻿//! # simple-db
 //!
 //! A type-safe, async-first query builder and ORM for Rust with in-memory and pluggable database drivers.
 //!
@@ -38,3 +38,4 @@ pub mod entity;
 mod context;
 
 pub use context::DbContext;
+pub use entity::{DbEntity, DbEntityModel, DbEntityState};

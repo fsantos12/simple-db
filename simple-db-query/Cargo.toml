@@ -25,3 +25,6 @@ async-trait = "0.1"
 smallvec = "1.11"
 once_cell = "1.19"
 smol_str = "0.3"
+
+# --- Error ---
+thiserror = "2.0.18"

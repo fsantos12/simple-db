@@ -5,6 +5,8 @@ use serde_json::Value as JsonValue;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
+use crate::types::DbError;
+
 // Tag in the high 16 bits, payload in the low 48.
 const TAG_SHIFT: u64    = 48;
 const PAYLOAD_MASK: u64 = (1 << TAG_SHIFT) - 1;
@@ -420,6 +422,38 @@ impl DbValue {
         }
         char::from_u32(self.payload() as u32)
     }
+
+    /// Returns a human-readable string of the current value's type
+    #[inline]
+    pub fn type_name(&self) -> &'static str {
+        match self.ty() {
+            TYPE_NULL => "Null",
+            TYPE_BOOL => "bool",
+            TYPE_I8 => "i8",
+            TYPE_I16 => "i16",
+            TYPE_I32 => "i32",
+            TYPE_I64 => "i64",
+            TYPE_I128 => "i128",
+            TYPE_U8 => "u8",
+            TYPE_U16 => "u16",
+            TYPE_U32 => "u32",
+            TYPE_U64 => "u64",
+            TYPE_U128 => "u128",
+            TYPE_F32 => "f32",
+            TYPE_F64 => "f64",
+            TYPE_DECIMAL => "Decimal",
+            TYPE_CHAR => "char",
+            TYPE_STRING => "String",
+            TYPE_DATE => "NaiveDate",
+            TYPE_TIME => "NaiveTime",
+            TYPE_TIMESTAMP => "NaiveDateTime",
+            TYPE_TIMESTAMPZ => "DateTime<Utc>",
+            TYPE_BYTES => "Vec<u8>",
+            TYPE_UUID => "Uuid",
+            TYPE_JSON => "JsonValue",
+            _ => "Unknown",
+        }
+    }
 }
 
 impl Drop for DbValue {
@@ -596,15 +630,18 @@ impl From<Option<&str>> for DbValue {
 macro_rules! impl_try_from {
     ($t:ty, $as_fn:ident, $type_name:expr, copy) => {
         impl TryFrom<&DbValue> for $t {
-            type Error = DbValueConversionError;
+            type Error = DbError;
             #[inline]
             fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
-                value.$as_fn().ok_or(DbValueConversionError { expected: $type_name })
+                value.$as_fn().ok_or(DbError::TypeError {
+                    expected: $type_name.to_string(), 
+                    found: value.type_name().to_string()
+                })
             }
         }
 
         impl TryFrom<DbValue> for $t {
-            type Error = DbValueConversionError;
+            type Error = DbError;
             #[inline]
             fn try_from(value: DbValue) -> Result<Self, Self::Error> {
                 <$t as TryFrom<&DbValue>>::try_from(&value)
@@ -613,29 +650,27 @@ macro_rules! impl_try_from {
     };
     ($t:ty, $as_fn:ident, $type_name:expr, clone) => {
         impl TryFrom<&DbValue> for $t {
-            type Error = DbValueConversionError;
+            type Error = DbError;
             #[inline]
             fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
                 value
                     .$as_fn()
                     .map(|v| v.clone())
-                    .ok_or(DbValueConversionError { expected: $type_name })
+                    .ok_or(DbError::TypeError {
+                        expected: $type_name.to_string(), 
+                        found: value.type_name().to_string()
+                    })
             }
         }
 
         impl TryFrom<DbValue> for $t {
-            type Error = DbValueConversionError;
+            type Error = DbError;
             #[inline]
             fn try_from(value: DbValue) -> Result<Self, Self::Error> {
                 <$t as TryFrom<&DbValue>>::try_from(&value)
             }
         }
     };
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct DbValueConversionError {
-    pub expected: &'static str,
 }
 
 impl_try_from!(bool, as_bool, "bool", copy);
@@ -650,29 +685,9 @@ impl_try_from!(u64, as_u64, "u64", copy);
 impl_try_from!(f32, as_f32, "f32", copy);
 impl_try_from!(f64, as_f64, "f64", copy);
 impl_try_from!(char, as_char, "char", copy);
-
-// Reference-returning decoders: clone to produce owned values.
 impl_try_from!(i128, as_i128, "i128", clone);
 impl_try_from!(u128, as_u128, "u128", clone);
 impl_try_from!(Decimal, as_decimal, "Decimal", clone);
-impl TryFrom<&DbValue> for String {
-    type Error = DbValueConversionError;
-    #[inline]
-    fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
-        value
-            .as_string()
-            .map(|s| s.to_string())
-            .ok_or(DbValueConversionError { expected: "String" })
-    }
-}
-
-impl TryFrom<DbValue> for String {
-    type Error = DbValueConversionError;
-    #[inline]
-    fn try_from(value: DbValue) -> Result<Self, Self::Error> {
-        String::try_from(&value)
-    }
-}
 impl_try_from!(NaiveDate, as_date, "NaiveDate", clone);
 impl_try_from!(NaiveTime, as_time, "NaiveTime", clone);
 impl_try_from!(NaiveDateTime, as_timestamp, "NaiveDateTime", clone);
@@ -680,19 +695,44 @@ impl_try_from!(DateTime<Utc>, as_timestampz, "DateTime<Utc>", clone);
 impl_try_from!(Uuid, as_uuid, "Uuid", clone);
 impl_try_from!(JsonValue, as_json, "JsonValue", clone);
 
+impl TryFrom<&DbValue> for String {
+    type Error = DbError;
+    #[inline]
+    fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
+        value
+            .as_string()
+            .map(|s| s.to_string())
+            .ok_or(DbError::TypeError {
+                        expected: "String".to_string(), 
+                        found: value.type_name().to_string()
+                    })
+    }
+}
+
+impl TryFrom<DbValue> for String {
+    type Error = DbError;
+    #[inline]
+    fn try_from(value: DbValue) -> Result<Self, Self::Error> {
+        String::try_from(&value)
+    }
+}
+
 impl TryFrom<&DbValue> for Vec<u8> {
-    type Error = DbValueConversionError;
+    type Error = DbError;
     #[inline]
     fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
         value
             .as_bytes()
             .map(|b| b.to_vec())
-            .ok_or(DbValueConversionError { expected: "Vec<u8>" })
+            .ok_or(DbError::TypeError {
+                        expected: "Vec<u8>".to_string(), 
+                        found: value.type_name().to_string()
+                    })
     }
 }
 
 impl TryFrom<DbValue> for Vec<u8> {
-    type Error = DbValueConversionError;
+    type Error = DbError;
     #[inline]
     fn try_from(value: DbValue) -> Result<Self, Self::Error> {
         Vec::<u8>::try_from(&value)

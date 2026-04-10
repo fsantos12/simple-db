@@ -5,7 +5,7 @@ use serde_json::Value as JsonValue;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::types::DbError;
+use crate::types::{TypeError, DbError};
 
 // Tag in the high 16 bits, payload in the low 48.
 const TAG_SHIFT: u64    = 48;
@@ -634,10 +634,10 @@ macro_rules! impl_try_from {
             type Error = DbError;
             #[inline]
             fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
-                value.$as_fn().ok_or(DbError::TypeError {
+                value.$as_fn().ok_or(TypeError::Mismatch {
                     expected: $type_name.to_string(), 
                     found: value.type_name().to_string()
-                })
+                }.into())
             }
         }
 
@@ -657,10 +657,10 @@ macro_rules! impl_try_from {
                 value
                     .$as_fn()
                     .map(|v| v.clone())
-                    .ok_or(DbError::TypeError {
+                    .ok_or(TypeError::Mismatch {
                         expected: $type_name.to_string(), 
                         found: value.type_name().to_string()
-                    })
+                    }.into())
             }
         }
 
@@ -703,10 +703,10 @@ impl TryFrom<&DbValue> for String {
         value
             .as_string()
             .map(|s| s.to_string())
-            .ok_or(DbError::TypeError {
+            .ok_or(TypeError::Mismatch {
                         expected: "String".to_string(), 
                         found: value.type_name().to_string()
-                    })
+                    }.into())
     }
 }
 
@@ -725,10 +725,10 @@ impl TryFrom<&DbValue> for Vec<u8> {
         value
             .as_bytes()
             .map(|b| b.to_vec())
-            .ok_or(DbError::TypeError {
+            .ok_or(TypeError::Mismatch {
                         expected: "Vec<u8>".to_string(), 
                         found: value.type_name().to_string()
-                    })
+                    }.into())
     }
 }
 

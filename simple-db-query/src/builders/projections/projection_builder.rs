@@ -1,14 +1,14 @@
 use smallvec::SmallVec;
 use smol_str::SmolStr;
 
-use crate::builders::projections::Projection;
+use crate::builders::{ProjectionDefinition, projections::Projection};
 
 /// Fluent builder for constructing field selection and aggregation projections.
 ///
 /// `ProjectionBuilder` enables selecting specific fields and applying aggregate
 /// functions (count, sum, avg, min, max) to shape query results. Projections
 /// can include field aliases for renamed output columns using the `.as()` method.
-pub struct ProjectionBuilder(SmallVec<[Projection; 10]>);
+pub struct ProjectionBuilder(ProjectionDefinition);
 
 impl ProjectionBuilder {
     /// Create a new ProjectionBuilder.

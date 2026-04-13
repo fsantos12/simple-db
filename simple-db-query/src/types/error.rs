@@ -210,3 +210,68 @@ pub enum DriverError {
     #[error("transaction error")]
     Transaction(#[source] Box<dyn Error + Send + Sync + 'static>),
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_type_error_conversion() {
+        // Test that TypeError automatically converts to DbError
+        let type_err = TypeError::IndexOutOfBounds(5);
+        let _db_err: DbError = type_err.into();
+        // Conversion should work without error
+    }
+
+    #[test]
+    fn test_query_error_conversion() {
+        // Test that QueryError automatically converts to DbError
+        let query_err = QueryError::InvalidArgument("bad value".to_string());
+        let _db_err: DbError = query_err.into();
+        // Conversion should work without error
+    }
+
+    #[test]
+    fn test_driver_error_conversion() {
+        // Test that DriverError automatically converts to DbError
+        use std::error::Error;
+        let driver_err = DriverError::Connection(
+            Box::<dyn Error + Send + Sync>::from("timeout")
+        );
+        let _db_err: DbError = driver_err.into();
+        // Conversion should work without error
+    }
+
+    #[test]
+    fn test_not_found_error() {
+        // Test NotFound variant
+        let not_found = DbError::NotFound;
+        assert!(matches!(not_found, DbError::NotFound));
+    }
+
+    #[test]
+    fn test_error_display() {
+        // Test that errors have helpful Display messages
+        let err = DbError::NotFound;
+        let msg = format!("{}", err);
+        assert!(!msg.is_empty());
+    }
+
+    #[test]
+    fn test_type_mismatch_error() {
+        let err = TypeError::Mismatch {
+            expected: "i32".to_string(),
+            found: "String".to_string(),
+        };
+        let msg = format!("{}", err);
+        assert!(msg.contains("i32"));
+        assert!(msg.contains("String"));
+    }
+
+    #[test]
+    fn test_column_missing_error() {
+        let err = TypeError::ColumnMissing("user_email".to_string());
+        let msg = format!("{}", err);
+        assert!(msg.contains("user_email"));
+    }
+}

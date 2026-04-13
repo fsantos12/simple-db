@@ -1,9 +1,9 @@
 use smallvec::SmallVec;
 use smol_str::SmolStr;
 
-use crate::{builders::filters::Filter, types::DbValue};
+use crate::{builders::{FilterDefinition, filters::Filter}, types::DbValue};
 
-pub struct FilterBuilder(SmallVec<[Filter; 8]>);
+pub struct FilterBuilder(FilterDefinition);
 
 impl FilterBuilder {
     // --- Constructors ---

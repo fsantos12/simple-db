@@ -1,13 +1,13 @@
 use smallvec::SmallVec;
 use smol_str::SmolStr;
 
-use crate::builders::sorts::Sort;
+use crate::builders::{SortDefinition, sorts::Sort};
 
 /// Fluent builder for constructing sort ordering and null handling strategies.
 ///
 /// `SortBuilder` defines result ordering with support for ascending/descending
 /// directions and null value placement control. Also supports random ordering.
-pub struct SortBuilder(SmallVec<[Sort; 4]>);
+pub struct SortBuilder(SortDefinition);
 
 impl SortBuilder {
     /// Create a new SortBuilder.

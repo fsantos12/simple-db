@@ -1,11 +1,13 @@
 use smallvec::SmallVec;
 use smol_str::SmolStr;
 
+use crate::builders::GroupDefinition;
+
 /// Fluent builder for constructing GROUP BY clauses.
 ///
 /// `GroupBuilder` enables specifying one or more fields for grouping aggregate
 /// queries and controlling result set partitioning.
-pub struct GroupBuilder(SmallVec<[SmolStr; 4]>);
+pub struct GroupBuilder(GroupDefinition);
 
 impl GroupBuilder {
     /// Create a new GroupBuilder.

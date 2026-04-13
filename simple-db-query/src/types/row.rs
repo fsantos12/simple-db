@@ -10,17 +10,19 @@
 
 use crate::types::{DbValue, TypeError, DbError};
 
-/// Generic trait for accessing database row values.
+/// Generic trait for accessing database row values (object-safe).
 ///
 /// `DbRow` abstracts over different row implementations, allowing code to work
 /// with rows from any source (in-memory, streaming, etc.) via a common interface.
+/// This trait is object-safe and can be used as `dyn DbRow`.
+///
+/// For type-safe conversions, use the [`DbRowExt`] extension trait.
 ///
 /// # Access Methods
 ///
 /// Values can be accessed:
 /// - **By index**: `get_by_index(0)` for the first column
 /// - **By name**: `get_by_name("email")` for a named column
-/// - **With type conversion**: `get_by_index_as::<i32>(0)` for typed access
 ///
 /// # Example
 ///
@@ -29,8 +31,8 @@ use crate::types::{DbValue, TypeError, DbError};
 /// #
 /// // Implementer provides a row
 /// // let row: &dyn DbRow = ...;
-/// // let name: String = row.get_by_name_as("name")?;
-/// // let age: i32 = row.get_by_index_as(1)?;
+/// // let value = row.get_by_index(0);
+/// // let named = row.get_by_name("email");
 /// ```
 pub trait DbRow {
     /// Returns a reference to the value at the given column index.
@@ -76,7 +78,24 @@ pub trait DbRow {
     fn is_empty(&self) -> bool {
         self.len() == 0
     }
+}
 
+/// Extension trait for type-safe value conversions on `DbRow`.
+///
+/// This trait provides generic methods for converting row values to specific types.
+/// It's automatically available for all types implementing `DbRow`.
+///
+/// # Example
+///
+/// ```rust
+/// # use simple_db_query::types::{DbRow, DbRowExt};
+/// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn std::error::Error>> {
+/// let user_id: i32 = row.get_by_index_as(0)?;
+/// let email: String = row.get_by_name_as("email")?;
+/// # Ok(())
+/// # }
+/// ```
+pub trait DbRowExt: DbRow {
     /// Returns the value at the given column index, converted to type `T`.
     ///
     /// Provides type-safe access with automatic error conversion.
@@ -90,7 +109,7 @@ pub trait DbRow {
     ///
     /// # Example
     /// ```rust
-    /// # use simple_db_query::types::DbRow;
+    /// # use simple_db_query::types::{DbRow, DbRowExt};
     /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn std::error::Error>> {
     /// let user_id: i32 = row.get_by_index_as(0)?;
     /// let email: String = row.get_by_index_as(3)?;
@@ -116,7 +135,7 @@ pub trait DbRow {
     ///
     /// # Example
     /// ```rust
-    /// # use simple_db_query::types::DbRow;
+    /// # use simple_db_query::types::{DbRow, DbRowExt};
     /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn std::error::Error>> {
     /// let name: String = row.get_by_name_as("user_name")?;
     /// let age: i32 = row.get_by_name_as("age")?;
@@ -129,3 +148,6 @@ pub trait DbRow {
         T::try_from(value)
     }
 }
+
+/// Blanket implementation: all `DbRow` types automatically implement `DbRowExt`.
+impl<T: DbRow + ?Sized> DbRowExt for T {}

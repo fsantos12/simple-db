@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 
-use crate::{queries::{DeleteQuery, FindQuery, InsertQuery, UpdateQuery}, types::{DbError, DbRow}};
+use simple_db_query::queries::{DeleteQuery, FindQuery, InsertQuery, UpdateQuery};
+use simple_db_query::types::{DbError, DbRow};
 
 /// Abstract async interface for database operations.
 ///
@@ -9,7 +10,7 @@ use crate::{queries::{DeleteQuery, FindQuery, InsertQuery, UpdateQuery}, types::
 /// returning `DbError` on problems.
 #[async_trait]
 pub trait Driver: Send + Sync {
-    /// Executes a SELECT query and returns matching rows.
+    /// Executes a FIND/SELECT query and returns matching rows.
     /// Returns Ok with empty vector if no rows match, not Err(NotFound).
     async fn find(&self, query: FindQuery) -> Result<Vec<Box<dyn DbRow>>, DbError>;
 
@@ -41,7 +42,7 @@ pub trait Driver: Send + Sync {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::queries::{FindQuery, InsertQuery, UpdateQuery, DeleteQuery};
+    use simple_db_query::queries::{FindQuery, InsertQuery, UpdateQuery, DeleteQuery};
     use async_trait::async_trait;
 
     /// Mock driver implementation for testing

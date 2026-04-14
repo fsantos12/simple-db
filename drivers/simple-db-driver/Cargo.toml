@@ -1,0 +1,13 @@
+[package]
+name = "simple-db-driver"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# --- Internal ---
+simple-db-query = { workspace = true }
+
+# --- Async & Runtime ---
+tokio = { workspace = true }
+async-trait = { workspace = true }

@@ -34,7 +34,7 @@ use crate::types::{DbValue, TypeError, DbError};
 /// // let value = row.get_by_index(0);
 /// // let named = row.get_by_name("email");
 /// ```
-pub trait DbRow {
+pub trait DbRow: Send + Sync {
     /// Returns a reference to the value at the given column index.
     ///
     /// Returns `None` if the index is out of bounds.

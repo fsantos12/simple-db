@@ -8,12 +8,11 @@ pub struct MemoryRow {
 }
 
 impl MemoryRow {
-    pub fn insert(row: Vec<(String, DbValue)>) -> Self {
-
-    }
-
-    pub fn bulk_insert(rows: Vec<Vec<(String, DbValue)>>) -> Self {
-
+    pub fn new(column_mapping: Arc<HashMap<String, usize>>, values: Vec<DbValue>) -> Self {
+        Self {
+            column_mapping,
+            values,
+        }
     }
 }
 

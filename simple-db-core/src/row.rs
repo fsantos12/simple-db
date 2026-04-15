@@ -8,7 +8,7 @@
 //! - Streaming query results
 //! - Test fixtures
 
-use crate::types::{DbValue, TypeError, DbError};
+use crate::{error::{DbError, TypeError}, value::DbValue, DbResult};
 
 /// Generic trait for accessing database row values (object-safe).
 ///
@@ -27,7 +27,7 @@ use crate::types::{DbValue, TypeError, DbError};
 /// # Example
 ///
 /// ```rust
-/// # use simple_db_query::types::{DbValue, DbRow};
+/// # use simple_db_core::{DbValue, DbRow};
 /// #
 /// // Implementer provides a row
 /// // let row: &dyn DbRow = ...;
@@ -88,8 +88,8 @@ pub trait DbRow: Send + Sync {
 /// # Example
 ///
 /// ```rust
-/// # use simple_db_query::types::{DbRow, DbRowExt};
-/// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn std::error::Error>> {
+/// # use simple_db_core::{DbRow, DbRowExt, DbError};
+/// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn DbError>> {
 /// let user_id: i32 = row.get_by_index_as(0)?;
 /// let email: String = row.get_by_name_as("email")?;
 /// # Ok(())
@@ -109,15 +109,15 @@ pub trait DbRowExt: DbRow {
     ///
     /// # Example
     /// ```rust
-    /// # use simple_db_query::types::{DbRow, DbRowExt};
-    /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn std::error::Error>> {
+    /// # use simple_db_core::{DbRow, DbRowExt, DbError};
+    /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn DbError>> {
     /// let user_id: i32 = row.get_by_index_as(0)?;
     /// let email: String = row.get_by_index_as(3)?;
     /// # Ok(())
     /// # }
     /// ```
-    fn get_by_index_as<'a, T>(&'a self, index: usize) -> Result<T, DbError>
-    where T: TryFrom<&'a DbValue, Error = DbError> {
+    fn get_by_index_as<'a, T>(&'a self, index: usize) -> DbResult<T>
+    where T: TryFrom<&'a DbValue, Error = Box<dyn DbError>> {
         let value = self.get_by_index(index).ok_or_else(|| TypeError::IndexOutOfBounds(index))?;
         T::try_from(value)
     }
@@ -135,15 +135,15 @@ pub trait DbRowExt: DbRow {
     ///
     /// # Example
     /// ```rust
-    /// # use simple_db_query::types::{DbRow, DbRowExt};
-    /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn std::error::Error>> {
+    /// # use simple_db_core::{DbRow, DbRowExt, DbError};
+    /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn DbError>> {
     /// let name: String = row.get_by_name_as("user_name")?;
     /// let age: i32 = row.get_by_name_as("age")?;
     /// # Ok(())
     /// # }
     /// ```
-    fn get_by_name_as<'a, T>(&'a self, name: &str) -> Result<T, DbError>
-    where T: TryFrom<&'a DbValue, Error = DbError> {
+    fn get_by_name_as<'a, T>(&'a self, name: &str) -> DbResult<T>
+    where T: TryFrom<&'a DbValue, Error = Box<dyn DbError>> {
         let value = self.get_by_name(name).ok_or_else(|| TypeError::ColumnMissing(name.to_string()))?;
         T::try_from(value)
     }
@@ -151,3 +151,4 @@ pub trait DbRowExt: DbRow {
 
 /// Blanket implementation: all `DbRow` types automatically implement `DbRowExt`.
 impl<T: DbRow + ?Sized> DbRowExt for T {}
+

@@ -1,4 +1,4 @@
-use crate::types::DbValue;
+use simple_db_core::DbValue;
 
 /// INSERT query builder for adding data to a collection.
 ///

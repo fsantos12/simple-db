@@ -2,12 +2,14 @@ use crate::builders::{FilterBuilder, FilterDefinition, GroupBuilder, GroupDefini
 
 /// SELECT query builder for reading data from a collection.
 ///
-/// Supports all SQL SELECT capabilities:
-/// - Column selection (projections) with aggregates
-/// - Filtering (WHERE clause)
-/// - Sorting (ORDER BY)
-/// - Grouping (GROUP BY aggregates)
-/// - Pagination (LIMIT/OFFSET)
+/// Supports the full SQL SELECT feature set:
+/// - Column selection and aggregates (projections)
+/// - Row filtering (WHERE clause)
+/// - Result ordering (ORDER BY clause)
+/// - Aggregate grouping (GROUP BY clause)
+/// - Pagination (LIMIT / OFFSET)
+///
+/// Construct via [`Query::find`](super::Query::find).
 ///
 /// # Example
 ///
@@ -15,8 +17,8 @@ use crate::builders::{FilterBuilder, FilterDefinition, GroupBuilder, GroupDefini
 /// let query = Query::find("orders")
 ///     .project(|b| b
 ///         .field("customer_id")
-///         .sum("total").as_("grand_total")
-///         .count_all().as_("order_count")
+///         .sum("total")
+///         .count_all()
 ///     )
 ///     .filter(|b| b.gte("total", 100.0))
 ///     .filter(|b| b.eq("status", "completed"))
@@ -35,7 +37,7 @@ pub struct FindQuery {
 }
 
 impl FindQuery {
-    /// Creates a new find query for the given collection.
+    /// Creates a new `FindQuery` targeting the given collection.
     pub fn new<S: Into<String>>(collection: S) -> Self {
         Self {
             collection: collection.into(),
@@ -48,42 +50,56 @@ impl FindQuery {
         }
     }
 
-    /// Adds column selections and aggregations using a builder closure.
-    /// Multiple calls replace previous projections.
-    pub fn project<F>(mut self, build: F) -> Self 
-    where F: FnOnce(ProjectionBuilder) -> ProjectionBuilder {
-        let builder = build(ProjectionBuilder::new());
-        self.projections.extend(builder.build());
+    /// Adds column selections and aggregations (SELECT clause).
+    ///
+    /// Multiple calls accumulate projections — each call appends to the list
+    /// rather than replacing it.
+    pub fn project<F>(mut self, build: F) -> Self
+    where
+        F: FnOnce(ProjectionBuilder) -> ProjectionBuilder,
+    {
+        self.projections.extend(build(ProjectionBuilder::new()).build());
         self
     }
 
-    /// Adds filter conditions (WHERE clause). Multiple filter calls use implicit AND logic.
-    pub fn filter<F>(mut self, build: F) -> Self 
-    where F: FnOnce(FilterBuilder) -> FilterBuilder {
-        let builder = build(FilterBuilder::new());
-        self.filters.extend(builder.build());
+    /// Adds filter predicates (WHERE clause).
+    ///
+    /// Multiple calls accumulate filters with **implicit AND** logic.
+    pub fn filter<F>(mut self, build: F) -> Self
+    where
+        F: FnOnce(FilterBuilder) -> FilterBuilder,
+    {
+        self.filters.extend(build(FilterBuilder::new()).build());
         self
     }
 
-    /// Sets the entire filter definition at once.
+    /// Replaces the filter definition wholesale.
+    ///
+    /// Useful when passing a pre-built [`FilterDefinition`] from outside the builder.
     pub fn with_filters(mut self, filters: FilterDefinition) -> Self {
         self.filters.extend(filters);
         self
     }
 
-    /// Adds sorting specifications (ORDER BY clause).
-    pub fn order_by<F>(mut self, build: F) -> Self 
-    where F: FnOnce(SortBuilder) -> SortBuilder {
-        let builder = build(SortBuilder::new());
-        self.sorts.extend(builder.build());
+    /// Adds sort instructions (ORDER BY clause).
+    ///
+    /// Multiple calls accumulate sorts — earlier calls take higher sort priority.
+    pub fn order_by<F>(mut self, build: F) -> Self
+    where
+        F: FnOnce(SortBuilder) -> SortBuilder,
+    {
+        self.sorts.extend(build(SortBuilder::new()).build());
         self
     }
 
-    /// Adds grouping specifications (GROUP BY clause) for aggregate queries.
-    pub fn group_by<F>(mut self, build: F) -> Self 
-    where F: FnOnce(GroupBuilder) -> GroupBuilder {
-        let builder = build(GroupBuilder::new());
-        self.groups.extend(builder.build());
+    /// Adds group-by fields (GROUP BY clause) for aggregate queries.
+    ///
+    /// Multiple calls accumulate group fields.
+    pub fn group_by<F>(mut self, build: F) -> Self
+    where
+        F: FnOnce(GroupBuilder) -> GroupBuilder,
+    {
+        self.groups.extend(build(GroupBuilder::new()).build());
         self
     }
 

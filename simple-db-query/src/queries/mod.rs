@@ -1,10 +1,10 @@
-//! **Query Builders Module**
+//! **Query Module**
 //!
-//! This module provides the main entry point `Query` and four CRUD query types:
-//! - **FindQuery**: SELECT queries with filtering, sorting, grouping, pagination
-//! - **InsertQuery**: INSERT queries with single or bulk row insertion
-//! - **UpdateQuery**: UPDATE queries with column updates and WHERE filters
-//! - **DeleteQuery**: DELETE queries with WHERE filters
+//! This module provides the main entry point [`Query`] and four CRUD query types:
+//! - [`FindQuery`]: SELECT queries with filtering, sorting, grouping, and pagination
+//! - [`InsertQuery`]: INSERT queries with single or bulk row insertion
+//! - [`UpdateQuery`]: UPDATE queries with column updates and WHERE filters
+//! - [`DeleteQuery`]: DELETE queries with WHERE filters
 //!
 //! All queries use a builder pattern for ergonomic, type-safe construction.
 
@@ -22,48 +22,56 @@ pub use delete::DeleteQuery;
 // Query Builder Entry Point
 // ==========================================
 
-/// Static entry point for creating new queries.
+/// Static entry point for building queries.
+///
+/// All four CRUD operations are available as associated functions that return
+/// their respective builder. The builders are then used to add projections,
+/// filters, sorts, and other clauses via method chaining.
 ///
 /// # Examples
 ///
-/// ```rust,ignore
-/// // Create a SELECT query
-/// let select = Query::find("users")
-///     .project(|b| b.field("name").field("email"))
-///     .filter(|b| b.gt("age", 18));
+/// ```rust
+/// use simple_db_query::Query;
 ///
-/// // Create an INSERT query
-/// let insert = Query::insert("users")
+/// // SELECT query
+/// let q = Query::find("users")
+///     .project(|b| b.field("name").field("email"))
+///     .filter(|b| b.gt("age", 18i32))
+///     .order_by(|b| b.asc("name"))
+///     .limit(10);
+///
+/// // INSERT query
+/// let q = Query::insert("users")
 ///     .insert(vec![("name", "Alice"), ("email", "alice@example.com")]);
 ///
-/// // Create an UPDATE query
-/// let update = Query::update("users")
+/// // UPDATE query
+/// let q = Query::update("users")
 ///     .set("email", "newemail@example.com")
-///     .filter(|b| b.eq("id", 1));
+///     .filter(|b| b.eq("id", 1i32));
 ///
-/// // Create a DELETE query
-/// let delete = Query::delete("users")
-///     .filter(|b| b.eq("id", 1));
+/// // DELETE query
+/// let q = Query::delete("users")
+///     .filter(|b| b.eq("id", 1i32));
 /// ```
 pub struct Query;
 
 impl Query {
-    /// Builds a SELECT query.
+    /// Creates a new [`FindQuery`] (SELECT) targeting `collection`.
     pub fn find<C: Into<String>>(collection: C) -> FindQuery {
         FindQuery::new(collection)
     }
 
-    /// Builds an INSERT query.
+    /// Creates a new [`InsertQuery`] (INSERT) targeting `collection`.
     pub fn insert<C: Into<String>>(collection: C) -> InsertQuery {
         InsertQuery::new(collection)
     }
 
-    /// Builds an UPDATE query.
+    /// Creates a new [`UpdateQuery`] (UPDATE) targeting `collection`.
     pub fn update<C: Into<String>>(collection: C) -> UpdateQuery {
         UpdateQuery::new(collection)
     }
 
-    /// Builds a DELETE query.
+    /// Creates a new [`DeleteQuery`] (DELETE) targeting `collection`.
     pub fn delete<C: Into<String>>(collection: C) -> DeleteQuery {
         DeleteQuery::new(collection)
     }

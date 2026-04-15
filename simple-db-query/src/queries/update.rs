@@ -1,4 +1,6 @@
-use crate::{builders::{FilterBuilder, FilterDefinition}, types::DbValue};
+use simple_db_core::DbValue;
+
+use crate::{builders::{FilterBuilder, FilterDefinition}};
 
 /// UPDATE query builder for modifying existing data.
 ///

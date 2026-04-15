@@ -1,28 +1,46 @@
-//! # Simple-DB-Query: Type-Safe Database Query Engine
+//! # simple-db-query
 //!
-//! A comprehensive, high-performance database query builder for Rust with:
-//! - **Type-safe query construction** via fluent builder pattern
-//! - **Efficient value representation** using bit-packed 64-bit `DbValue`
-//! - **Async/await support** for non-blocking database operations
-//! - **Zero-copy where possible** with SmallVec stack allocation
+//! Type-safe, driver-agnostic query builder for the simple-db ecosystem.
 //!
 //! ## Quick Start
 //!
-//! ```rust,ignore
-//! // Find users older than 18
-//! let query = Query::find("users")
+//! ```rust
+//! use simple_db_query::Query;
+//!
+//! // SELECT with filters, sorts, and pagination
+//! let q = Query::find("users")
 //!     .project(|b| b.field("name").field("email"))
-//!     .filter(|b| b.gt("age", 18))
+//!     .filter(|b| b.gt("age", 18i32))
 //!     .order_by(|b| b.asc("name"))
 //!     .limit(10);
+//!
+//! // INSERT
+//! let q = Query::insert("users")
+//!     .insert(vec![("name", "Alice"), ("email", "alice@example.com")]);
+//!
+//! // UPDATE
+//! let q = Query::update("users")
+//!     .set("active", false)
+//!     .filter(|b| b.lt("last_login_days", 90i32));
+//!
+//! // DELETE
+//! let q = Query::delete("users")
+//!     .filter(|b| b.eq("archived", true));
 //! ```
 //!
-//! ## Core Modules
+//! ## Modules
 //!
-//! - **[types]**: Value encoding, errors
-//! - **[queries]**: FindQuery, InsertQuery, UpdateQuery, DeleteQuery
-//! - **[builders]**: Fluent query components (filters, projections, sorts, groups)
+//! - [`queries`] — [`Query`] entry point and CRUD query types
+//! - [`builders`] — filter, projection, sort, and group-by builders
 
-pub mod types;
-pub mod builders;
-pub mod queries;
+mod builders;
+mod queries;
+
+// Re-export the most commonly used types at the crate root for convenience.
+pub use queries::{Query, FindQuery, InsertQuery, UpdateQuery, DeleteQuery};
+pub use builders::{
+    Filter, FilterBuilder, FilterDefinition,
+    Projection, ProjectionBuilder, ProjectionDefinition,
+    Sort, SortBuilder, SortDefinition,
+    GroupBuilder, GroupDefinition,
+};

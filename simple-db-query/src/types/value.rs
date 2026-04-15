@@ -269,6 +269,11 @@ impl DbValue {
         (self.ty() == TYPE_BOOL).then(|| self.payload() != 0)
     }
 
+    #[inline]
+    pub fn is_bool(&self) -> bool {
+        self.ty() == TYPE_BOOL
+    }
+
     /// Creates a signed 8-bit integer.
     #[inline]
     pub fn from_i8(val: i8) -> Self {
@@ -278,6 +283,11 @@ impl DbValue {
     #[inline]
     pub fn as_i8(&self) -> Option<i8> {
         (self.ty() == TYPE_I8).then(|| self.payload_as_i64_i48() as i8)
+    }
+
+    #[inline]
+    pub fn is_i8(&self) -> bool {
+        self.ty() == TYPE_I8
     }
 
     #[inline]
@@ -291,6 +301,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_i16(&self) -> bool {
+        self.ty() == TYPE_I16
+    }
+
+    #[inline]
     pub fn from_i32(val: i32) -> Self {
         Self::from_tag_and_i48(Self::mk_tag(CATEGORY_INLINE, TYPE_I32), val as i64)
     }
@@ -298,6 +313,11 @@ impl DbValue {
     #[inline]
     pub fn as_i32(&self) -> Option<i32> {
         (self.ty() == TYPE_I32).then(|| self.payload_as_i64_i48() as i32)
+    }
+
+    #[inline]
+    pub fn is_i32(&self) -> bool {
+        self.ty() == TYPE_I32
     }
 
     #[inline]
@@ -311,6 +331,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_u8(&self) -> bool {
+        self.ty() == TYPE_U8
+    }
+
+    #[inline]
     pub fn from_u16(val: u16) -> Self {
         Self::from_tag_and_u48(Self::mk_tag(CATEGORY_INLINE, TYPE_U16), val as u64)
     }
@@ -318,6 +343,11 @@ impl DbValue {
     #[inline]
     pub fn as_u16(&self) -> Option<u16> {
         (self.ty() == TYPE_U16).then(|| self.payload() as u16)
+    }
+
+    #[inline]
+    pub fn is_u16(&self) -> bool {
+        self.ty() == TYPE_U16
     }
 
     #[inline]
@@ -331,6 +361,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_u32(&self) -> bool {
+        self.ty() == TYPE_U32
+    }
+
+    #[inline]
     pub fn from_f32(val: f32) -> Self {
         Self::from_tag_and_u48(Self::mk_tag(CATEGORY_INLINE, TYPE_F32), val.to_bits() as u64)
     }
@@ -338,6 +373,11 @@ impl DbValue {
     #[inline]
     pub fn as_f32(&self) -> Option<f32> {
         (self.ty() == TYPE_F32).then(|| f32::from_bits(self.payload() as u32))
+    }
+
+    #[inline]
+    pub fn is_f32(&self) -> bool {
+        self.ty() == TYPE_F32
     }
 
     #[inline]
@@ -351,6 +391,11 @@ impl DbValue {
             return None;
         }
         char::from_u32(self.payload() as u32)
+    }
+
+    #[inline]
+    pub fn is_char(&self) -> bool {
+        self.ty() == TYPE_CHAR
     }
 
     // =========================================================================
@@ -387,6 +432,11 @@ impl DbValue {
         }
     }
 
+    #[inline]
+    pub fn is_i64(&self) -> bool {
+        self.ty() == TYPE_I64
+    }
+
     /// Creates an unsigned 64-bit integer.
     ///
     /// If the value fits in 48 bits, it's stored inline. Otherwise, boxed.
@@ -410,6 +460,11 @@ impl DbValue {
         }
     }
 
+    #[inline]
+    pub fn is_u64(&self) -> bool {
+        self.ty() == TYPE_U64
+    }
+
     /// Creates an IEEE 64-bit float (always boxed).
     ///
     /// f64 values cannot be stored inline and are always heap-allocated.
@@ -429,6 +484,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_f64(&self) -> bool {
+        self.ty() == TYPE_F64
+    }
+
+    #[inline]
     pub fn from_i128(val: i128) -> Self {
         Self::from_tag_and_boxed(Self::mk_tag(CATEGORY_BOXED, TYPE_I128), val)
     }
@@ -437,6 +497,11 @@ impl DbValue {
     pub fn as_i128(&self) -> Option<&i128> {
         (self.ty() == TYPE_I128 && self.category() == CATEGORY_BOXED)
             .then(|| unsafe { self.payload_as_ref::<i128>() })
+    }
+
+    #[inline]
+    pub fn is_i128(&self) -> bool {
+        self.ty() == TYPE_I128
     }
 
     #[inline]
@@ -451,6 +516,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_u128(&self) -> bool {
+        self.ty() == TYPE_U128
+    }
+
+    #[inline]
     pub fn from_decimal(val: Decimal) -> Self {
         Self::from_tag_and_boxed(Self::mk_tag(CATEGORY_BOXED, TYPE_DECIMAL), val)
     }
@@ -459,6 +529,11 @@ impl DbValue {
     pub fn as_decimal(&self) -> Option<&Decimal> {
         (self.ty() == TYPE_DECIMAL && self.category() == CATEGORY_BOXED)
             .then(|| unsafe { self.payload_as_ref::<Decimal>() })
+    }
+
+    #[inline]
+    pub fn is_decimal(&self) -> bool {
+        self.ty() == TYPE_DECIMAL
     }
 
     /// Creates a UTF-8 string value (always boxed).
@@ -479,6 +554,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_string(&self) -> bool {
+        self.ty() == TYPE_STRING
+    }
+
+    #[inline]
     pub fn from_bytes(val: impl Into<Vec<u8>>) -> Self {
         Self::from_tag_and_boxed(Self::mk_tag(CATEGORY_BOXED, TYPE_BYTES), val.into())
     }
@@ -489,6 +569,11 @@ impl DbValue {
             return None;
         }
         Some(unsafe { self.payload_as_ref::<Vec<u8>>().as_slice() })
+    }
+
+    #[inline]
+    pub fn is_bytes(&self) -> bool {
+        self.ty() == TYPE_BYTES
     }
 
     #[inline]
@@ -503,6 +588,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_uuid(&self) -> bool {
+        self.ty() == TYPE_UUID
+    }
+
+    #[inline]
     pub fn from_json(val: impl Into<JsonValue>) -> Self {
         Self::from_tag_and_boxed(Self::mk_tag(CATEGORY_BOXED, TYPE_JSON), val.into())
     }
@@ -511,6 +601,11 @@ impl DbValue {
     pub fn as_json(&self) -> Option<&JsonValue> {
         (self.ty() == TYPE_JSON && self.category() == CATEGORY_BOXED)
             .then(|| unsafe { self.payload_as_ref::<JsonValue>() })
+    }
+
+    #[inline]
+    pub fn is_json(&self) -> bool {
+        self.ty() == TYPE_JSON
     }
 
     #[inline]
@@ -525,6 +620,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_date(&self) -> bool {
+        self.ty() == TYPE_DATE
+    }
+
+    #[inline]
     pub fn from_time(val: NaiveTime) -> Self {
         Self::from_tag_and_boxed(Self::mk_tag(CATEGORY_BOXED, TYPE_TIME), val)
     }
@@ -533,6 +633,11 @@ impl DbValue {
     pub fn as_time(&self) -> Option<&NaiveTime> {
         (self.ty() == TYPE_TIME && self.category() == CATEGORY_BOXED)
             .then(|| unsafe { self.payload_as_ref::<NaiveTime>() })
+    }
+
+    #[inline]
+    pub fn is_time(&self) -> bool {
+        self.ty() == TYPE_TIME
     }
 
     #[inline]
@@ -547,6 +652,11 @@ impl DbValue {
     }
 
     #[inline]
+    pub fn is_timestamp(&self) -> bool {
+        self.ty() == TYPE_TIMESTAMP
+    }
+
+    #[inline]
     pub fn from_timestampz(val: DateTime<Utc>) -> Self {
         Self::from_tag_and_boxed(Self::mk_tag(CATEGORY_BOXED, TYPE_TIMESTAMPZ), val)
     }
@@ -555,6 +665,11 @@ impl DbValue {
     pub fn as_timestampz(&self) -> Option<&DateTime<Utc>> {
         (self.ty() == TYPE_TIMESTAMPZ && self.category() == CATEGORY_BOXED)
             .then(|| unsafe { self.payload_as_ref::<DateTime<Utc>>() })
+    }
+
+    #[inline]
+    pub fn is_timestampz(&self) -> bool {
+        self.ty() == TYPE_TIMESTAMPZ
     }
 
     /// Returns a human-readable string of the current value's type
@@ -677,6 +792,41 @@ impl PartialEq for DbValue {
             TYPE_UUID => self.as_uuid() == other.as_uuid(),
             TYPE_JSON => self.as_json() == other.as_json(),
             _ => false,
+        }
+    }
+}
+
+impl PartialOrd for DbValue {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        // Different types are never equal.
+        if self.ty() != other.ty() { return None; }
+        // Compare values based on their actual type.
+        match self.ty() {
+            TYPE_NULL => Some(std::cmp::Ordering::Equal),
+            TYPE_BOOL => self.as_bool().partial_cmp(&other.as_bool()),
+            TYPE_I8 => self.as_i8().partial_cmp(&other.as_i8()),
+            TYPE_I16 => self.as_i16().partial_cmp(&other.as_i16()),
+            TYPE_I32 => self.as_i32().partial_cmp(&other.as_i32()),
+            TYPE_I64 => self.as_i64().partial_cmp(&other.as_i64()),
+            TYPE_I128 => self.as_i128().partial_cmp(&other.as_i128()),
+            TYPE_U8 => self.as_u8().partial_cmp(&other.as_u8()),
+            TYPE_U16 => self.as_u16().partial_cmp(&other.as_u16()),
+            TYPE_U32 => self.as_u32().partial_cmp(&other.as_u32()),
+            TYPE_U64 => self.as_u64().partial_cmp(&other.as_u64()),
+            TYPE_U128 => self.as_u128().partial_cmp(&other.as_u128()),
+            TYPE_F32 => self.as_f32().partial_cmp(&other.as_f32()),
+            TYPE_F64 => self.as_f64().partial_cmp(&other.as_f64()),
+            TYPE_DECIMAL => self.as_decimal().partial_cmp(&other.as_decimal()),
+            TYPE_CHAR => self.as_char().partial_cmp(&other.as_char()),
+            TYPE_STRING => self.as_string().partial_cmp(&other.as_string()),
+            TYPE_DATE => self.as_date().partial_cmp(&other.as_date()),
+            TYPE_TIME => self.as_time().partial_cmp(&other.as_time()),
+            TYPE_TIMESTAMP => self.as_timestamp().partial_cmp(&other.as_timestamp()),
+            TYPE_TIMESTAMPZ => self.as_timestampz().partial_cmp(&other.as_timestampz()),
+            TYPE_BYTES => self.as_bytes().partial_cmp(&other.as_bytes()),
+            TYPE_UUID => self.as_uuid().partial_cmp(&other.as_uuid()),
+            TYPE_JSON => None, // JSON values are not ordered
+            _ => None,
         }
     }
 }

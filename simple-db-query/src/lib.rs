@@ -19,7 +19,7 @@
 //!
 //! ## Core Modules
 //!
-//! - **[types]**: Value encoding, row traits, errors
+//! - **[types]**: Value encoding, errors
 //! - **[queries]**: FindQuery, InsertQuery, UpdateQuery, DeleteQuery
 //! - **[builders]**: Fluent query components (filters, projections, sorts, groups)
 

@@ -4,8 +4,7 @@ members = [
     "simple-db-query",
     "simple-db-orm",
     "simple-db-macros",
-    "drivers/simple-db-driver",
-    "drivers/simple-db-memory",
+    "simple-db-driver",
     "drivers/simple-db-mysql",
     "drivers/simple-db-postgres",
     "drivers/simple-db-sqlite",
@@ -21,8 +20,7 @@ license = "MIT"
 simple-db-query = { path = "simple-db-query"}
 simple-db-orm = { path = "simple-db-orm"}
 simple-db-macros = { path = "simple-db-macros"}
-simple-db-driver = { path = "drivers/simple-db-driver"}
-simple-db-memory = { path = "drivers/simple-db-memory"}
+simple-db-driver = { path = "simple-db-driver"}
 simple-db-mysql = { path = "drivers/simple-db-mysql"}
 simple-db-postgres = { path = "drivers/simple-db-postgres"}
 simple-db-sqlite = { path = "drivers/simple-db-sqlite"}
@@ -47,6 +45,9 @@ smol_str = "0.3"
 # --- Error ---
 thiserror = "2.0.18"
 
+# --- SQL ---
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "chrono", "uuid", "macros"] }
+
 # --- Async & Runtime ---
-tokio = { version = "1.51.0", features = ["full"] }
+tokio = { version = "1.52.0", features = ["full"] }
 async-trait = "0.1"

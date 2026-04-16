@@ -170,9 +170,8 @@ mod tests {
     #[tokio::test]
     async fn test_managed_transaction_rolls_back_on_error() {
         let driver: Arc<dyn DbDriver> = Arc::new(MockDriver);
-        use simple_db_core::TypeError;
         let result: DbResult<()> = driver.transaction(|_tx| async move {
-            Err(Box::new(TypeError::ColumnMissing("id".into())) as Box<dyn DbError>)
+            Err(DbError::ColumnNotFound("id".into()))
         }).await;
         assert!(result.is_err());
     }

@@ -1,71 +1,61 @@
-/// Global error trait for the simple-db ecosystem.
+/// Unified error type for the simple-db ecosystem.
 ///
-/// All crates define their own concrete error types and implement this trait.
-/// The universal carrier across APIs is `Box<dyn DbError>`, which is what
-/// [`DbResult<T>`](crate::DbResult) uses.
+/// All fallible operations return `DbResult<T>` which is `Result<T, DbError>`.
+/// Driver implementors wrap their native errors in the [`DbError::Driver`] variant.
 ///
-/// # Implementing for a custom error type
+/// # Example
 ///
 /// ```rust
-/// use simple_db_core::DbError;
+/// use simple_db_core::{DbError, DbResult};
 ///
-/// #[derive(Debug, thiserror::Error)]
-/// pub enum MyDriverError {
-///     #[error("connection refused: {0}")]
-///     ConnectionRefused(String),
+/// fn fail() -> DbResult<i32> {
+///     Err(DbError::TypeMismatch { expected: "i32".into(), found: "String".into() })
 /// }
 ///
-/// impl DbError for MyDriverError {
-///     fn message(&self) -> &'static str {
-///         match self {
-///             Self::ConnectionRefused(_) => "connection refused",
-///         }
-///     }
-/// }
+/// assert!(fail().is_err());
 /// ```
-pub trait DbError: std::error::Error + Send + Sync {}
-
-/// Blanket conversion: any concrete `DbError` can be boxed into `Box<dyn DbError>`.
-///
-/// This makes `?` and `.into()` work transparently when the return type is
-/// `Result<_, Box<dyn DbError>>` or [`DbResult<T>`](crate::DbResult).
-impl<E: DbError + 'static> From<E> for Box<dyn DbError> {
-    fn from(e: E) -> Self {
-        Box::new(e)
-    }
-}
-
-// =============================================================================
-// Core error types (value / row access)
-// =============================================================================
-
-/// Errors arising from type conversions and row access on [`DbValue`](crate::DbValue)
-/// and [`DbRow`](crate::DbRow).
-///
-/// These are the errors you get when you call `TryFrom<&DbValue>` or the
-/// `DbRowExt` helpers and the type or column does not match.
 #[derive(Debug, thiserror::Error)]
-pub enum TypeError {
+pub enum DbError {
+    // --- Type / row access errors ---
+
     /// The value held a different type than what was requested.
     ///
     /// # Example
     /// Calling `i32::try_from` on a `DbValue` that holds a `String`.
     #[error("type mismatch: expected {expected}, found {found}")]
-    Mismatch { expected: String, found: String },
+    TypeMismatch { expected: String, found: String },
 
     /// A column index was out of bounds for the row.
     ///
     /// # Example
     /// Calling `row.get_by_index_as::<i32>(99)` on a row with 3 columns.
     #[error("column index out of bounds: {0}")]
-    IndexOutOfBounds(usize),
+    ColumnIndexOutOfBounds(usize),
 
     /// A named column did not exist in the row.
     ///
     /// # Example
     /// Calling `row.get_by_name_as::<String>("email")` when no such column exists.
     #[error("column not found: '{0}'")]
-    ColumnMissing(String),
+    ColumnNotFound(String),
+
+    // --- Driver / IO errors ---
+
+    /// An error originating from an underlying database driver or IO layer.
+    ///
+    /// Use [`DbError::driver`] to construct this variant from any error type.
+    #[error("driver error: {0}")]
+    Driver(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
-impl DbError for TypeError {}
+impl DbError {
+    /// Wraps any error into the [`DbError::Driver`] variant.
+    ///
+    /// # Example
+    /// ```rust,ignore
+    /// .map_err(DbError::driver)?;
+    /// ```
+    pub fn driver(e: impl std::error::Error + Send + Sync + 'static) -> Self {
+        DbError::Driver(Box::new(e))
+    }
+}

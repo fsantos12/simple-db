@@ -8,7 +8,7 @@
 //! - Streaming query results
 //! - Test fixtures
 
-use crate::{error::{DbError, TypeError}, value::DbValue, DbResult};
+use crate::{error::DbError, value::DbValue, DbResult};
 
 /// Generic trait for accessing database row values (object-safe).
 ///
@@ -88,8 +88,8 @@ pub trait DbRow: Send + Sync {
 /// # Example
 ///
 /// ```rust
-/// # use simple_db_core::{DbRow, DbRowExt, DbError};
-/// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn DbError>> {
+/// # use simple_db_core::{DbRow, DbRowExt, DbResult};
+/// # fn example(row: &dyn DbRow) -> DbResult<()> {
 /// let user_id: i32 = row.get_by_index_as(0)?;
 /// let email: String = row.get_by_name_as("email")?;
 /// # Ok(())
@@ -109,8 +109,8 @@ pub trait DbRowExt: DbRow {
     ///
     /// # Example
     /// ```rust
-    /// # use simple_db_core::{DbRow, DbRowExt, DbError};
-    /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn DbError>> {
+    /// # use simple_db_core::{DbRow, DbRowExt, DbResult};
+    /// # fn example(row: &dyn DbRow) -> DbResult<()> {
     /// let user_id: i32 = row.get_by_index_as(0)?;
     /// let email: String = row.get_by_index_as(3)?;
     /// # Ok(())
@@ -118,9 +118,9 @@ pub trait DbRowExt: DbRow {
     /// ```
     fn get_by_index_as<T>(&self, index: usize) -> DbResult<T>
     where
-        T: TryFrom<DbValue, Error = Box<dyn DbError>>,
+        T: TryFrom<DbValue, Error = DbError>,
     {
-        let value = self.get_by_index(index).ok_or_else(|| TypeError::IndexOutOfBounds(index))?;
+        let value = self.get_by_index(index).ok_or(DbError::ColumnIndexOutOfBounds(index))?;
         T::try_from(value)
     }
 
@@ -132,13 +132,13 @@ pub trait DbRowExt: DbRow {
     /// * `T` - Target type that implements `TryFrom<DbValue>`
     ///
     /// # Errors
-    /// * `TypeError::ColumnMissing` - Column name doesn't exist
+    /// * `DbError::ColumnNotFound` - Column name doesn't exist
     /// * Any error from `T::try_from` - Type conversion failed
     ///
     /// # Example
     /// ```rust
-    /// # use simple_db_core::{DbRow, DbRowExt, DbError};
-    /// # fn example(row: &dyn DbRow) -> Result<(), Box<dyn DbError>> {
+    /// # use simple_db_core::{DbRow, DbRowExt, DbResult};
+    /// # fn example(row: &dyn DbRow) -> DbResult<()> {
     /// let name: String = row.get_by_name_as("user_name")?;
     /// let age: i32 = row.get_by_name_as("age")?;
     /// # Ok(())
@@ -146,9 +146,9 @@ pub trait DbRowExt: DbRow {
     /// ```
     fn get_by_name_as<T>(&self, name: &str) -> DbResult<T>
     where
-        T: TryFrom<DbValue, Error = Box<dyn DbError>>,
+        T: TryFrom<DbValue, Error = DbError>,
     {
-        let value = self.get_by_name(name).ok_or_else(|| TypeError::ColumnMissing(name.to_string()))?;
+        let value = self.get_by_name(name).ok_or_else(|| DbError::ColumnNotFound(name.to_string()))?;
         T::try_from(value)
     }
 }

@@ -39,7 +39,7 @@ use serde_json::Value as JsonValue;
 use rust_decimal::Decimal;
 use uuid::Uuid;
 
-use crate::error::{DbError, TypeError};
+use crate::error::DbError;
 
 /// Bit shift to extract tag from the 64-bit encoding. Tag resides in bits 48-63.
 const TAG_SHIFT:    u64 = 48;
@@ -937,19 +937,19 @@ macro_rules! impl_try_from {
     ($t:ty, $as_fn:ident, $type_name:expr, copy) => {
         /// Try to convert a reference to a `DbValue` into the target type.
         impl TryFrom<&DbValue> for $t {
-            type Error = Box<dyn DbError>;
+            type Error = DbError;
             #[inline]
             fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
-                value.$as_fn().ok_or_else(|| TypeError::Mismatch {
+                value.$as_fn().ok_or_else(|| DbError::TypeMismatch {
                     expected: $type_name.to_string(),
                     found: value.type_name().to_string(),
-                }.into())
+                })
             }
         }
 
         /// Try to convert an owned `DbValue` into the target type.
         impl TryFrom<DbValue> for $t {
-            type Error = Box<dyn DbError>;
+            type Error = DbError;
             #[inline]
             fn try_from(value: DbValue) -> Result<Self, Self::Error> {
                 <$t as TryFrom<&DbValue>>::try_from(&value)
@@ -958,21 +958,21 @@ macro_rules! impl_try_from {
     };
     ($t:ty, $as_fn:ident, $type_name:expr, clone) => {
         impl TryFrom<&DbValue> for $t {
-            type Error = Box<dyn DbError>;
+            type Error = DbError;
             #[inline]
             fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
                 value
                     .$as_fn()
                     .map(|v| v.clone())
-                    .ok_or_else(|| TypeError::Mismatch {
+                    .ok_or_else(|| DbError::TypeMismatch {
                         expected: $type_name.to_string(),
                         found: value.type_name().to_string(),
-                    }.into())
+                    })
             }
         }
 
         impl TryFrom<DbValue> for $t {
-            type Error = Box<dyn DbError>;
+            type Error = DbError;
             #[inline]
             fn try_from(value: DbValue) -> Result<Self, Self::Error> {
                 <$t as TryFrom<&DbValue>>::try_from(&value)
@@ -1004,21 +1004,21 @@ impl_try_from!(Uuid, as_uuid, "Uuid", clone);
 impl_try_from!(JsonValue, as_json, "JsonValue", clone);
 
 impl TryFrom<&DbValue> for String {
-    type Error = Box<dyn DbError>;
+    type Error = DbError;
     #[inline]
     fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
         value
             .as_string()
             .map(|s| s.to_string())
-            .ok_or_else(|| TypeError::Mismatch {
+            .ok_or_else(|| DbError::TypeMismatch {
                 expected: "String".to_string(),
                 found: value.type_name().to_string(),
-            }.into())
+            })
     }
 }
 
 impl TryFrom<DbValue> for String {
-    type Error = Box<dyn DbError>;
+    type Error = DbError;
     #[inline]
     fn try_from(value: DbValue) -> Result<Self, Self::Error> {
         String::try_from(&value)
@@ -1026,21 +1026,21 @@ impl TryFrom<DbValue> for String {
 }
 
 impl TryFrom<&DbValue> for Vec<u8> {
-    type Error = Box<dyn DbError>;
+    type Error = DbError;
     #[inline]
     fn try_from(value: &DbValue) -> Result<Self, Self::Error> {
         value
             .as_bytes()
             .map(|b| b.to_vec())
-            .ok_or_else(|| TypeError::Mismatch {
+            .ok_or_else(|| DbError::TypeMismatch {
                 expected: "Vec<u8>".to_string(),
                 found: value.type_name().to_string(),
-            }.into())
+            })
     }
 }
 
 impl TryFrom<DbValue> for Vec<u8> {
-    type Error = Box<dyn DbError>;
+    type Error = DbError;
     #[inline]
     fn try_from(value: DbValue) -> Result<Self, Self::Error> {
         Vec::<u8>::try_from(&value)

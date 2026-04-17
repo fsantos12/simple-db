@@ -41,13 +41,19 @@ pub fn compile_find_query(query: FindQuery) -> (String, Vec<DbValue>) {
         sql.push_str(&sort_sql);
     }
 
-    // LIMIT / OFFSET
-    if let Some(limit) = query.limit {
-        sql.push_str(&format!(" LIMIT {}", limit));
-    }
-    
-    if let Some(offset) = query.offset {
-        sql.push_str(&format!(" OFFSET {}", offset));
+    // LIMIT / OFFSET — SQLite requires LIMIT before OFFSET
+    match (query.limit, query.offset) {
+        (Some(limit), Some(offset)) => {
+            sql.push_str(&format!(" LIMIT {} OFFSET {}", limit, offset));
+        }
+        (Some(limit), None) => {
+            sql.push_str(&format!(" LIMIT {}", limit));
+        }
+        (None, Some(offset)) => {
+            // SQLite does not support OFFSET without LIMIT; use -1 for unlimited
+            sql.push_str(&format!(" LIMIT -1 OFFSET {}", offset));
+        }
+        (None, None) => {}
     }
 
     (sql, parameters)

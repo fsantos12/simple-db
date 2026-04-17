@@ -1,0 +1,15 @@
+[package]
+name = "simple-db-sqlite-test"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "simple-db-sqlite-test"
+path = "src/main.rs"
+
+[dependencies]
+simple-db-test-lib.workspace = true
+simple-db = { workspace = true, features = ["sqlite"] }
+async-trait.workspace = true
+tokio.workspace = true
+sqlx = { workspace = true, features = ["sqlite"] }

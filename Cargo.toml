@@ -8,6 +8,10 @@ members = [
     "drivers/simple-db-mysql",
     "drivers/simple-db-postgres",
     "drivers/simple-db-sqlite",
+    "tests/simple-db-test-lib",
+    "tests/simple-db-sqlite-test",
+    "tests/simple-db-postgres-test",
+    "tests/simple-db-mysql-test",
 ]
 
 [workspace.package]
@@ -24,6 +28,7 @@ simple-db-macros = { path = "simple-db-macros"}
 simple-db-mysql = { path = "drivers/simple-db-mysql"}
 simple-db-postgres = { path = "drivers/simple-db-postgres"}
 simple-db-sqlite = { path = "drivers/simple-db-sqlite"}
+simple-db-test-lib = { path = "tests/simple-db-test-lib"}
 
 # --- Serialization & Formats ---
 serde = { version = "1.0", features = ["derive"] }

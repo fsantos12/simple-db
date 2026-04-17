@@ -1444,6 +1444,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "simple-db-mysql-test"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "simple-db",
+ "simple-db-test-lib",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "simple-db-orm"
 version = "0.1.0"
 
@@ -1460,6 +1471,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "simple-db-postgres-test"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "simple-db",
+ "simple-db-test-lib",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
 name = "simple-db-sqlite"
 version = "0.1.0"
 dependencies = [
@@ -1468,6 +1490,26 @@ dependencies = [
  "simple-db-core",
  "sqlx",
  "thiserror",
+ "tokio",
+]
+
+[[package]]
+name = "simple-db-sqlite-test"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "simple-db",
+ "simple-db-test-lib",
+ "sqlx",
+ "tokio",
+]
+
+[[package]]
+name = "simple-db-test-lib"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "simple-db",
  "tokio",
 ]
 

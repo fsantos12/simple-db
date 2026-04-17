@@ -1,0 +1,9 @@
+[package]
+name = "simple-db-test-lib"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+simple-db.workspace = true
+async-trait.workspace = true
+tokio.workspace = true

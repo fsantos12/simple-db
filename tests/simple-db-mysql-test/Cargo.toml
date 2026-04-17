@@ -1,0 +1,15 @@
+[package]
+name = "simple-db-mysql-test"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "simple-db-mysql-test"
+path = "src/main.rs"
+
+[dependencies]
+simple-db-test-lib.workspace = true
+simple-db = { workspace = true, features = ["mysql"] }
+async-trait.workspace = true
+tokio.workspace = true
+sqlx = { workspace = true, features = ["mysql"] }

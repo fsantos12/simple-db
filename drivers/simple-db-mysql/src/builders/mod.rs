@@ -1,3 +1,8 @@
+//! SQL clause compilers for the MySQL driver.
+//!
+//! Each function converts the driver-agnostic builder types from `simple-db-core`
+//! into MySQL-specific SQL fragments. Placeholders use `?` positional syntax.
+
 mod projections;
 mod filters;
 mod sorts;

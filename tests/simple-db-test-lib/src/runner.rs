@@ -5,10 +5,13 @@ use crate::{
     suite,
 };
 
+/// Configuration for a [`TestRunner`] run.
 pub struct RunnerConfig {
     /// Number of iterations per benchmark operation.
     pub runs: u32,
+    /// Whether to execute the correctness test suite.
     pub run_tests: bool,
+    /// Whether to execute the benchmark suite.
     pub run_bench: bool,
 }
 
@@ -19,6 +22,7 @@ impl Default for RunnerConfig {
 }
 
 impl RunnerConfig {
+    /// Parses `--runs N`, `--bench-only`, and `--test-only` from `std::env::args`.
     pub fn from_args() -> Self {
         let args: Vec<String> = std::env::args().collect();
         let mut cfg = RunnerConfig::default();
@@ -55,16 +59,19 @@ impl RunnerConfig {
     }
 }
 
+/// Orchestrates the test and benchmark suites for a single database driver.
 pub struct TestRunner {
     harness: Box<dyn TestHarness>,
     config: RunnerConfig,
 }
 
 impl TestRunner {
+    /// Creates a new runner with the given harness and configuration.
     pub fn new(harness: impl TestHarness + 'static, config: RunnerConfig) -> Self {
         Self { harness: Box::new(harness), config }
     }
 
+    /// Runs tests and/or benchmarks according to the configuration and returns a [`RunReport`].
     pub async fn run(self) -> RunReport {
         let mut report = RunReport {
             driver_name: self.harness.driver_name().to_string(),

@@ -1,5 +1,8 @@
 use simple_db_core::query::{Sort, SortDefinition};
 
+/// Compiles a [`SortDefinition`] into a comma-separated ORDER BY clause fragment.
+///
+/// Returns an empty string when there are no sort instructions.
 pub fn compile_sorts(sorts: &SortDefinition) -> String {
     if sorts.is_empty() { return "".to_string() }
 
@@ -11,6 +14,7 @@ pub fn compile_sorts(sorts: &SortDefinition) -> String {
     return sort_sql;
 }
 
+/// Compiles a single [`Sort`] variant into its SQL ORDER BY fragment.
 fn compile_sort(sort: &Sort) -> String {
     match sort {
         Sort::Asc(smol_str) => format!("{} ASC", smol_str),

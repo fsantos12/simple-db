@@ -10,11 +10,24 @@ use sqlx::PgPool;
 
 use super::{executor::{exec_delete, exec_find, exec_insert, exec_update}, PostgresTransaction};
 
+/// Pool-backed PostgreSQL driver.
+///
+/// Wraps a [`PgPool`] and implements [`DbDriver`] so it can be injected
+/// into a [`DbContext`](simple_db_core::context::DbContext).
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let pool = PgPoolOptions::new().connect("postgres://localhost/mydb").await?;
+/// let driver = PostgresDriver::new(pool);
+/// let ctx = DbContext::new(Arc::new(driver));
+/// ```
 pub struct PostgresDriver {
     pub pool: PgPool,
 }
 
 impl PostgresDriver {
+    /// Creates a new [`PostgresDriver`] wrapping the given connection pool.
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }

@@ -18,11 +18,20 @@ struct TransactionConsumedError;
 /// Uses `Mutex<Option<...>>` so that:
 /// - CRUD operations can borrow `&mut Transaction` while holding the lock.
 /// - `commit` / `rollback` consume the transaction by calling `take()`.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let tx = driver.begin().await?;
+/// tx.insert(Query::insert("orders").insert(row)).await?;
+/// tx.commit().await?;
+/// ```
 pub struct SqliteTransaction {
     tx: Mutex<Option<sqlx::Transaction<'static, Sqlite>>>,
 }
 
 impl SqliteTransaction {
+    /// Wraps an open sqlx transaction in a [`SqliteTransaction`].
     pub fn new(tx: sqlx::Transaction<'static, Sqlite>) -> Self {
         Self { tx: Mutex::new(Some(tx)) }
     }

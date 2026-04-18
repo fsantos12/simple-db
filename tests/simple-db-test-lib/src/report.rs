@@ -2,21 +2,32 @@ use std::time::Duration;
 
 use crate::bench::BenchResult;
 
+/// Result of a single named test case.
 pub struct TestCaseResult {
+    /// The test name as displayed in the report.
     pub name: &'static str,
+    /// Whether the test passed.
     pub passed: bool,
+    /// Human-readable error message when the test failed.
     pub error: Option<String>,
+    /// Wall-clock time taken by the test.
     pub elapsed: Duration,
 }
 
+/// Aggregated results for one full driver run (tests + benchmarks).
 pub struct RunReport {
+    /// Driver name shown in the report header.
     pub driver_name: String,
+    /// Number of benchmark iterations that were executed.
     pub runs: u32,
+    /// Individual test case outcomes.
     pub test_results: Vec<TestCaseResult>,
+    /// Individual benchmark outcomes.
     pub bench_results: Vec<BenchResult>,
 }
 
 impl RunReport {
+    /// Prints both the test suite results and the benchmark report to stdout.
     pub fn print(&self) {
         if !self.test_results.is_empty() {
             self.print_tests();
@@ -87,6 +98,7 @@ impl RunReport {
     }
 }
 
+/// Formats a [`Duration`] as a human-readable string with auto-scaled units (ns, µs, ms, s).
 pub fn fmt_duration(d: Duration) -> String {
     let ns = d.as_nanos();
     if ns < 1_000 {

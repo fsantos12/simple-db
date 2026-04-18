@@ -1,5 +1,8 @@
 use simple_db_core::{query::{Filter, FilterDefinition}, types::DbValue};
 
+/// Compiles a [`FilterDefinition`] into a MySQL `WHERE` clause fragment and its bound parameters.
+///
+/// Top-level filters are joined with `AND`. Returns an empty string when there are no filters.
 pub fn compile_filters(filters: &FilterDefinition) -> (String, Vec<DbValue>) {
     if filters.is_empty() { return ("".to_string(), vec![]) }
 
@@ -16,6 +19,7 @@ pub fn compile_filters(filters: &FilterDefinition) -> (String, Vec<DbValue>) {
     (final_sql, values)
 }
 
+/// Joins a slice of filters with the given logical operator and wraps the result in parentheses.
 fn compile_logical_filters(filters: &[Filter], operator: &str) -> (String, Vec<DbValue>) {
     if filters.is_empty() { return ("".to_string(), vec![]) }
 
@@ -32,6 +36,7 @@ fn compile_logical_filters(filters: &[Filter], operator: &str) -> (String, Vec<D
     (final_sql, values)
 }
 
+/// Compiles a single [`Filter`] variant into a SQL fragment and its bound parameters.
 fn compile_filter(filter: &Filter) -> (String, Vec<DbValue>) {
     match filter {
         Filter::IsNull(smol_str) => (format!("{} IS NULL", smol_str), vec![]),

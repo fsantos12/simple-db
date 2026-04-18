@@ -1,11 +1,17 @@
 use simple_db_core::types::{DbRow, DbValue};
 use sqlx::{postgres::PgRow, Column, Row, TypeInfo, ValueRef};
 
+/// Adapter that wraps a [`PgRow`] and exposes it through the [`DbRow`] interface.
+///
+/// Maps PostgreSQL OID type names to the appropriate [`DbValue`] variants.
+/// String-based types (CHAR, TEXT, UUID, JSON, DATE, TIME, TIMESTAMP) are all
+/// returned as [`DbValue::from_string`]. Unknown types are mapped to NULL.
 pub struct PostgresDbRow {
     row: PgRow,
 }
 
 impl PostgresDbRow {
+    /// Creates a new adapter wrapping the given raw PostgreSQL row.
     pub fn new(row: PgRow) -> Self {
         Self { row }
     }

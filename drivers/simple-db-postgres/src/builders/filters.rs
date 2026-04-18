@@ -1,9 +1,16 @@
 use simple_db_core::{query::{Filter, FilterDefinition}, types::DbValue};
 
+/// Compiles a [`FilterDefinition`] into a PostgreSQL `WHERE` clause fragment and its bound parameters.
+///
+/// Delegates to [`compile_filters_with_offset`] starting at parameter index `$1`.
 pub fn compile_filters(filters: &FilterDefinition) -> (String, Vec<DbValue>) {
     compile_filters_with_offset(filters, 1)
 }
 
+/// Like [`compile_filters`] but starts numbering parameters from `start_index`.
+///
+/// This is used by [`compile_update_query`](crate::queries::update::compile_update_query)
+/// to continue the `$N` sequence after the SET clause parameters.
 pub fn compile_filters_with_offset(filters: &FilterDefinition, start_index: usize) -> (String, Vec<DbValue>) {
     if filters.is_empty() { return ("".to_string(), vec![]) }
 
@@ -22,6 +29,8 @@ pub fn compile_filters_with_offset(filters: &FilterDefinition, start_index: usiz
     (final_sql, values)
 }
 
+/// Joins a slice of filters with the given logical operator and wraps the result in parentheses.
+/// Returns the next available parameter index so callers can continue numbering.
 fn compile_logical_filters(filters: &[Filter], operator: &str, parameter_index: usize) -> (String, Vec<DbValue>, usize) {
     if filters.is_empty() { return ("".to_string(), vec![], parameter_index) }
 
@@ -40,6 +49,8 @@ fn compile_logical_filters(filters: &[Filter], operator: &str, parameter_index: 
     (final_sql, values, current_index)
 }
 
+/// Compiles a single [`Filter`] variant into a SQL fragment, its bound parameters, and
+/// the next available `$N` parameter index.
 fn compile_filter(filter: &Filter, parameter_index: usize) -> (String, Vec<DbValue>, usize) {
     match filter {
         Filter::IsNull(smol_str) => (format!("{} IS NULL", smol_str), vec![], parameter_index),

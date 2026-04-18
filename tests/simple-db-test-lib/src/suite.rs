@@ -1,3 +1,17 @@
+//! Full correctness test suite shared by all driver integration tests.
+//!
+//! Each test function accepts a freshly provisioned [`DbContext`] and returns a
+//! [`TestResult`]. Tests are independent: the harness creates a new empty database
+//! for every test case.
+//!
+//! The suite covers:
+//! - Connectivity (`test_ping`)
+//! - INSERT (single, multiple rows, bulk)
+//! - SELECT with projections, filters, sorts, aggregations, pagination
+//! - UPDATE with and without filters
+//! - DELETE with and without filters
+//! - Transaction commit and rollback
+
 use simple_db::DbContext;
 use simple_db::query::Query;
 use simple_db::types::DbValue;

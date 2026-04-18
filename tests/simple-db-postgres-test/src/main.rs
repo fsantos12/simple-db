@@ -18,6 +18,10 @@ fn connection_url() -> String {
         .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/simple_db_test".into())
 }
 
+/// Test harness for the PostgreSQL driver.
+///
+/// Reads the connection URL from the environment and drops/recreates the `users`
+/// table on each [`create_context`] call so every test starts from a clean state.
 struct PostgresHarness {
     url: String,
 }

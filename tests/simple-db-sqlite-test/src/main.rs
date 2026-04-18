@@ -8,6 +8,10 @@ use simple_db_test_lib::{
 };
 use sqlx::sqlite::SqlitePoolOptions;
 
+/// Test harness for the SQLite driver using an in-memory database.
+///
+/// Each call to [`create_context`] creates a fresh in-memory SQLite database
+/// with the `users` table so every test starts from a clean state.
 struct SqliteHarness;
 
 #[async_trait]

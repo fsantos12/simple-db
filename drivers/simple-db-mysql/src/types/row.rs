@@ -1,11 +1,17 @@
 use simple_db_core::types::{DbRow, DbValue};
 use sqlx::{mysql::MySqlRow, Column, Row, TypeInfo, ValueRef};
 
+/// Adapter that wraps a [`MySqlRow`] and exposes it through the [`DbRow`] interface.
+///
+/// Maps MySQL type names to the appropriate [`DbValue`] variants.
+/// String-based types (CHAR, TEXT, JSON, DATE, TIME, TIMESTAMP) are all
+/// returned as [`DbValue::from_string`]. Unknown types are mapped to NULL.
 pub struct MysqlDbRow {
     row: MySqlRow,
 }
 
 impl MysqlDbRow {
+    /// Creates a new adapter wrapping the given raw MySQL row.
     pub fn new(row: MySqlRow) -> Self {
         Self { row }
     }

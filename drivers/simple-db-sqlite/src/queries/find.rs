@@ -2,6 +2,18 @@ use simple_db_core::{query::FindQuery, types::DbValue};
 
 use crate::builders::{compile_filters, compile_groups, compile_projections, compile_sorts};
 
+/// Compiles a [`FindQuery`] into a SQLite SELECT statement and its bound parameters.
+///
+/// Handles SELECT, FROM, WHERE, GROUP BY, ORDER BY, LIMIT, and OFFSET.
+/// SQLite does not support OFFSET without LIMIT, so `-1` is used as an unlimited sentinel.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let (sql, params) = compile_find_query(Query::find("users").filter(|b| b.eq("active", true)));
+/// // sql = "SELECT * FROM users WHERE active = ?"
+/// // params = [DbValue::from(true)]
+/// ```
 pub fn compile_find_query(query: FindQuery) -> (String, Vec<DbValue>) {
     let (filter_sql, parameters) = compile_filters(&query.filters);
     let proj_sql = compile_projections(&query.projections);

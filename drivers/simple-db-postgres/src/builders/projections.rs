@@ -1,5 +1,8 @@
 use simple_db_core::query::{Projection, ProjectionDefinition};
 
+/// Compiles a [`ProjectionDefinition`] into a comma-separated SELECT column list.
+///
+/// Returns `"*"` when the projection list is empty (select all columns).
 pub fn compile_projections(projections: &ProjectionDefinition) -> String {
     if projections.is_empty() { return "*".to_string() }
 
@@ -11,6 +14,7 @@ pub fn compile_projections(projections: &ProjectionDefinition) -> String {
     return projection_sql;
 }
 
+/// Compiles a single [`Projection`] variant into its SQL representation.
 fn compile_projection(projection: &Projection) -> String {
     match projection {
         Projection::Field(smol_str) => smol_str.to_string(),

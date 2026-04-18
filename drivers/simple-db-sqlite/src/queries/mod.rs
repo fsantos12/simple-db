@@ -1,3 +1,8 @@
+//! SQL query compilers for the SQLite driver.
+//!
+//! Each function takes a typed query object and returns a `(sql, parameters)` pair
+//! ready to be executed via sqlx. Placeholders use `?` positional syntax.
+
 mod find;
 mod insert;
 mod update;

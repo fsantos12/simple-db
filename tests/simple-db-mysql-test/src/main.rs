@@ -18,6 +18,10 @@ fn connection_url() -> String {
         .unwrap_or_else(|_| "mysql://root:root@localhost:3306/simple_db_test".into())
 }
 
+/// Test harness for the MySQL driver.
+///
+/// Reads the connection URL from the environment and drops/recreates the `users`
+/// table on each [`create_context`] call so every test starts from a clean state.
 struct MysqlHarness {
     url: String,
 }

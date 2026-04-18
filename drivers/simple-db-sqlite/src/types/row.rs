@@ -1,11 +1,16 @@
 use simple_db_core::types::{DbRow, DbValue};
 use sqlx::{Column, Row, TypeInfo, ValueRef, sqlite::SqliteRow};
 
+/// Adapter that wraps a [`SqliteRow`] and exposes it through the [`DbRow`] interface.
+///
+/// Maps SQLite's four storage classes (INTEGER, REAL, TEXT, BLOB) to the
+/// appropriate [`DbValue`] variants. Any unrecognised type is mapped to NULL.
 pub struct SqliteDbRow {
     row: SqliteRow,
 }
 
 impl SqliteDbRow {
+    /// Creates a new adapter wrapping the given raw SQLite row.
     pub fn new(row: SqliteRow) -> Self {
         Self { row }
     }

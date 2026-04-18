@@ -10,11 +10,24 @@ use sqlx::MySqlPool;
 
 use super::{executor::{exec_delete, exec_find, exec_insert, exec_update}, MysqlTransaction};
 
+/// Pool-backed MySQL driver.
+///
+/// Wraps a [`MySqlPool`] and implements [`DbDriver`] so it can be injected
+/// into a [`DbContext`](simple_db_core::context::DbContext).
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let pool = MySqlPoolOptions::new().connect("mysql://root:root@localhost/mydb").await?;
+/// let driver = MysqlDriver::new(pool);
+/// let ctx = DbContext::new(Arc::new(driver));
+/// ```
 pub struct MysqlDriver {
     pub pool: MySqlPool,
 }
 
 impl MysqlDriver {
+    /// Creates a new [`MysqlDriver`] wrapping the given connection pool.
     pub fn new(pool: MySqlPool) -> Self {
         Self { pool }
     }

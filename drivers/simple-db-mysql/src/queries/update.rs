@@ -2,6 +2,10 @@ use simple_db_core::{query::UpdateQuery, types::DbValue};
 
 use crate::builders::compile_filters;
 
+/// Compiles an [`UpdateQuery`] into a MySQL UPDATE statement and its bound parameters.
+///
+/// Returns an empty string if there are no field updates. Filter parameters are appended
+/// after the SET clause parameters.
 pub fn compile_update_query(query: UpdateQuery) -> (String, Vec<DbValue>) {
     if query.updates.is_empty() { return (String::new(), vec![]); }
 

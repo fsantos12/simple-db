@@ -2,10 +2,15 @@ use simple_db_core::{query::UpdateQuery, types::DbValue};
 
 use crate::builders::compile_filters_with_offset;
 
+/// Returns the PostgreSQL positional placeholder for the given 1-based index: `$N`.
 fn placeholder(position: usize) -> String {
     format!("${}", position)
 }
 
+/// Compiles an [`UpdateQuery`] into a PostgreSQL UPDATE statement and its bound parameters.
+///
+/// SET clause parameters occupy `$1..$N`; filter parameters start at `$N+1`.
+/// Returns an empty string if there are no field updates.
 pub fn compile_update_query(query: UpdateQuery) -> (String, Vec<DbValue>) {
     if query.updates.is_empty() { return (String::new(), vec![]); }
 

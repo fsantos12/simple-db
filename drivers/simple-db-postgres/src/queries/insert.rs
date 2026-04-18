@@ -1,9 +1,14 @@
 use simple_db_core::{query::InsertQuery, types::DbValue};
 
+/// Returns the PostgreSQL positional placeholder for the given 1-based index: `$N`.
 fn placeholder(position: usize) -> String {
     format!("${}", position)
 }
 
+/// Compiles an [`InsertQuery`] into a PostgreSQL INSERT statement and its bound parameters.
+///
+/// Generates a multi-row `INSERT INTO … VALUES ($1, $2), ($3, $4)` form when multiple
+/// rows are provided. Returns an empty string if the query has no rows.
 pub fn compile_insert_query(query: InsertQuery) -> (String, Vec<DbValue>) {
     if query.values.is_empty() { return (String::new(), vec![]); }
 

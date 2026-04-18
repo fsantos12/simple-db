@@ -2,6 +2,9 @@ use simple_db_core::{query::DeleteQuery, types::DbValue};
 
 use crate::builders::compile_filters;
 
+/// Compiles a [`DeleteQuery`] into a MySQL DELETE statement and its bound parameters.
+///
+/// If no filters are set, deletes all rows in the collection.
 pub fn compile_delete_query(query: DeleteQuery) -> (String, Vec<DbValue>) {
     let (filter_sql, filter_params) = compile_filters(&query.filters);
 

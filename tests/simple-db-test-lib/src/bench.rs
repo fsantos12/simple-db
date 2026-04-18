@@ -6,19 +6,30 @@ use simple_db::types::DbValue;
 
 // ─── Result type ─────────────────────────────────────────────────────────────
 
+/// Statistics for a single named benchmark operation.
 pub struct BenchResult {
+    /// Benchmark name shown in the report.
     pub name: String,
+    /// Number of timed iterations.
     pub runs: u32,
+    /// Sum of all iteration durations.
     pub total: Duration,
+    /// Fastest single iteration.
     pub min: Duration,
+    /// Slowest single iteration.
     pub max: Duration,
+    /// Mean duration across all iterations.
     pub avg: Duration,
+    /// 50th-percentile (median) duration.
     pub p50: Duration,
+    /// 95th-percentile duration.
     pub p95: Duration,
+    /// 99th-percentile duration.
     pub p99: Duration,
 }
 
 impl BenchResult {
+    /// Computes statistics from a list of individual iteration durations.
     pub fn from_durations(name: impl Into<String>, mut durations: Vec<Duration>) -> Self {
         if durations.is_empty() {
             return Self::zero(name);
@@ -50,6 +61,7 @@ impl BenchResult {
     }
 }
 
+/// Returns the value at the given percentile of a **sorted** slice of durations.
 fn percentile(sorted: &[Duration], p: usize) -> Duration {
     let idx = ((sorted.len() * p).saturating_sub(1) / 100).min(sorted.len() - 1);
     sorted[idx]

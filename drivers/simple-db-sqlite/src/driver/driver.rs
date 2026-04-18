@@ -13,11 +13,24 @@ use super::{
     SqliteTransaction,
 };
 
+/// Pool-backed SQLite driver.
+///
+/// Wraps a [`SqlitePool`] and implements [`DbDriver`] so it can be injected
+/// into a [`DbContext`](simple_db_core::context::DbContext).
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let pool = SqlitePoolOptions::new().connect("sqlite://:memory:").await?;
+/// let driver = SqliteDriver::new(pool);
+/// let ctx = DbContext::new(Arc::new(driver));
+/// ```
 pub struct SqliteDriver {
     pub pool: SqlitePool,
 }
 
 impl SqliteDriver {
+    /// Creates a new [`SqliteDriver`] wrapping the given connection pool.
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
     }

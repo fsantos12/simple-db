@@ -6,11 +6,15 @@ use sqlx::sqlite::SqliteRow;
 
 use crate::types::row::SqliteDbRow;
 
+/// Async cursor that streams [`SqliteRow`] values from a query result set.
+///
+/// Implements [`DbCursor`] so that consumers can iterate rows in a database-agnostic way.
 pub struct SqliteDbCursor {
     stream: BoxStream<'static, Result<SqliteRow, sqlx::Error>>,
 }
 
 impl SqliteDbCursor {
+    /// Creates a new cursor from a pinned [`BoxStream`] of SQLite rows.
     pub fn new(stream: BoxStream<'static, Result<SqliteRow, sqlx::Error>>) -> Self {
         Self { stream }
     }

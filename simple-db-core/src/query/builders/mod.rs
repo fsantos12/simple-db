@@ -1,3 +1,11 @@
+//! Query clause builders: filters, projections, sorts, and group-by.
+//!
+//! Each sub-module provides a fluent builder and an associated type alias:
+//! - [`filters`] — [`FilterBuilder`] / [`FilterDefinition`] for WHERE predicates
+//! - [`projections`] — [`ProjectionBuilder`] / [`ProjectionDefinition`] for SELECT columns
+//! - [`sorts`] — [`SortBuilder`] / [`SortDefinition`] for ORDER BY
+//! - [`groups`] — [`GroupBuilder`] / [`GroupDefinition`] for GROUP BY
+
 pub mod filters;
 pub mod groups;
 pub mod projections;

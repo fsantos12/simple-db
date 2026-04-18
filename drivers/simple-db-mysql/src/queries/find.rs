@@ -2,6 +2,10 @@ use simple_db_core::{query::FindQuery, types::DbValue};
 
 use crate::builders::{compile_filters, compile_groups, compile_projections, compile_sorts};
 
+/// Compiles a [`FindQuery`] into a MySQL SELECT statement and its bound parameters.
+///
+/// Handles SELECT, FROM, WHERE, GROUP BY, ORDER BY, LIMIT, and OFFSET.
+/// Parameters use `?` positional placeholders.
 pub fn compile_find_query(query: FindQuery) -> (String, Vec<DbValue>) {
     let (filter_sql, parameters) = compile_filters(&query.filters);
     let proj_sql = compile_projections(&query.projections);

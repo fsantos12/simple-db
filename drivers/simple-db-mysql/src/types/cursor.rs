@@ -4,11 +4,15 @@ use sqlx::mysql::MySqlRow;
 
 use crate::types::row::MysqlDbRow;
 
+/// Async cursor that streams [`MySqlRow`] values from a query result set.
+///
+/// Implements [`DbCursor`] so that consumers can iterate rows in a database-agnostic way.
 pub struct MysqlDbCursor {
     stream: BoxStream<'static, Result<MySqlRow, sqlx::Error>>,
 }
 
 impl MysqlDbCursor {
+    /// Creates a new cursor from a pinned [`BoxStream`] of MySQL rows.
     pub fn new(stream: BoxStream<'static, Result<MySqlRow, sqlx::Error>>) -> Self {
         Self { stream }
     }

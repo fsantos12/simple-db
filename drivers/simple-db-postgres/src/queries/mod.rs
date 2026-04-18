@@ -1,3 +1,8 @@
+//! SQL query compilers for the PostgreSQL driver.
+//!
+//! Each function takes a typed query object and returns a `(sql, parameters)` pair
+//! ready to be executed via sqlx. Placeholders use `$N` positional syntax (e.g. `$1`, `$2`).
+
 mod find;
 mod insert;
 mod update;

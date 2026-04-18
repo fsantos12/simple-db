@@ -1,5 +1,9 @@
 use simple_db_core::{query::InsertQuery, types::DbValue};
 
+/// Compiles an [`InsertQuery`] into a MySQL INSERT statement and its bound parameters.
+///
+/// Generates a multi-row `INSERT INTO … VALUES (?, ?), (?, ?)` form when multiple
+/// rows are provided. Returns an empty string if the query has no rows.
 pub fn compile_insert_query(query: InsertQuery) -> (String, Vec<DbValue>) {
     if query.values.is_empty() { return (String::new(), vec![]); }
 

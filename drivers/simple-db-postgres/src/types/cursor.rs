@@ -4,11 +4,15 @@ use sqlx::postgres::PgRow;
 
 use crate::types::row::PostgresDbRow;
 
+/// Async cursor that streams [`PgRow`] values from a query result set.
+///
+/// Implements [`DbCursor`] so that consumers can iterate rows in a database-agnostic way.
 pub struct PostgresDbCursor {
     stream: BoxStream<'static, Result<PgRow, sqlx::Error>>,
 }
 
 impl PostgresDbCursor {
+    /// Creates a new cursor from a pinned [`BoxStream`] of PostgreSQL rows.
     pub fn new(stream: BoxStream<'static, Result<PgRow, sqlx::Error>>) -> Self {
         Self { stream }
     }

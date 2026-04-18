@@ -13,6 +13,7 @@ use crate::{
 // Shared execution functions
 // ==========================================
 
+/// Compiles and runs a SELECT query, returning a streaming cursor over the results.
 pub(crate) async fn exec_find(executor: impl Executor<'_, Database = Sqlite>, query: FindQuery) -> DbResult<Box<dyn DbCursor>> {
     let (sql, params) = compile_find_query(query);
     let rows = build_query(&sql, &params)
@@ -23,6 +24,7 @@ pub(crate) async fn exec_find(executor: impl Executor<'_, Database = Sqlite>, qu
     Ok(Box::new(SqliteDbCursor::new(Box::pin(stream))))
 }
 
+/// Compiles and runs an INSERT statement, returning the number of rows inserted.
 pub(crate) async fn exec_insert(executor: impl Executor<'_, Database = Sqlite>, query: InsertQuery) -> DbResult<u64> {
     let (sql, params) = compile_insert_query(query);
     if sql.is_empty() {
@@ -35,6 +37,7 @@ pub(crate) async fn exec_insert(executor: impl Executor<'_, Database = Sqlite>, 
     Ok(result.rows_affected())
 }
 
+/// Compiles and runs an UPDATE statement, returning the number of rows affected.
 pub(crate) async fn exec_update(executor: impl Executor<'_, Database = Sqlite>, query: UpdateQuery) -> DbResult<u64> {
     let (sql, params) = compile_update_query(query);
     if sql.is_empty() {
@@ -47,6 +50,7 @@ pub(crate) async fn exec_update(executor: impl Executor<'_, Database = Sqlite>, 
     Ok(result.rows_affected())
 }
 
+/// Compiles and runs a DELETE statement, returning the number of rows deleted.
 pub(crate) async fn exec_delete(executor: impl Executor<'_, Database = Sqlite>, query: DeleteQuery) -> DbResult<u64> {
     let (sql, params) = compile_delete_query(query);
     let result = build_query(&sql, &params)
@@ -59,6 +63,8 @@ pub(crate) async fn exec_delete(executor: impl Executor<'_, Database = Sqlite>, 
 // ==========================================
 // Query building
 // ==========================================
+
+/// Builds a parameterised sqlx query by binding each [`DbValue`] in order.
 pub(crate) fn build_query<'q>(sql: &'q str, params: &[DbValue]) -> Query<'q, Sqlite, SqliteArguments<'q>> {
     let mut q = sqlx::query(sql);
     for param in params {

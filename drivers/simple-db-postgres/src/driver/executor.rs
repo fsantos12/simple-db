@@ -6,6 +6,7 @@ use crate::{
     types::PostgresDbCursor,
 };
 
+/// Compiles and runs a SELECT query, returning a streaming cursor over the results.
 pub(crate) async fn exec_find(executor: impl Executor<'_, Database = Postgres>, query: FindQuery) -> DbResult<Box<dyn DbCursor>> {
     let (sql, params) = compile_find_query(query);
     let rows = build_query(&sql, &params)
@@ -16,6 +17,7 @@ pub(crate) async fn exec_find(executor: impl Executor<'_, Database = Postgres>, 
     Ok(Box::new(PostgresDbCursor::new(Box::pin(stream))))
 }
 
+/// Compiles and runs an INSERT statement, returning the number of rows inserted.
 pub(crate) async fn exec_insert(executor: impl Executor<'_, Database = Postgres>, query: InsertQuery) -> DbResult<u64> {
     let (sql, params) = compile_insert_query(query);
     if sql.is_empty() {
@@ -28,6 +30,7 @@ pub(crate) async fn exec_insert(executor: impl Executor<'_, Database = Postgres>
     Ok(result.rows_affected())
 }
 
+/// Compiles and runs an UPDATE statement, returning the number of rows affected.
 pub(crate) async fn exec_update(executor: impl Executor<'_, Database = Postgres>, query: UpdateQuery) -> DbResult<u64> {
     let (sql, params) = compile_update_query(query);
     if sql.is_empty() {
@@ -40,6 +43,7 @@ pub(crate) async fn exec_update(executor: impl Executor<'_, Database = Postgres>
     Ok(result.rows_affected())
 }
 
+/// Compiles and runs a DELETE statement, returning the number of rows deleted.
 pub(crate) async fn exec_delete(executor: impl Executor<'_, Database = Postgres>, query: DeleteQuery) -> DbResult<u64> {
     let (sql, params) = compile_delete_query(query);
     let result = build_query(&sql, &params)
@@ -49,6 +53,7 @@ pub(crate) async fn exec_delete(executor: impl Executor<'_, Database = Postgres>
     Ok(result.rows_affected())
 }
 
+/// Builds a parameterised sqlx query by binding each [`DbValue`] in order.
 pub(crate) fn build_query<'q>(sql: &'q str, params: &[DbValue]) -> Query<'q, Postgres, PgArguments> {
     let mut q = sqlx::query(sql);
     for param in params {
@@ -57,6 +62,14 @@ pub(crate) fn build_query<'q>(sql: &'q str, params: &[DbValue]) -> Query<'q, Pos
     q
 }
 
+/// Maps a single [`DbValue`] to the closest PostgreSQL-native type and binds it.
+///
+/// PostgreSQL type mapping applied:
+/// - All integer types → BIGINT (i64)
+/// - f32/f64 → DOUBLE PRECISION (f64)
+/// - String, char, temporal, uuid, json, decimal → TEXT
+/// - Vec<u8> → BYTEA
+/// - NULL → NULL
 fn bind_value<'q>(q: Query<'q, Postgres, PgArguments>, value: &DbValue) -> Query<'q, Postgres, PgArguments> {
     if value.is_null()            { q.bind(None::<i64>) }
     else if value.is_bool()       { q.bind(value.as_bool().unwrap()) }

@@ -13,11 +13,25 @@ use super::executor::{exec_delete, exec_find, exec_insert, exec_update};
 #[error("transaction has already been committed or rolled back")]
 struct TransactionConsumedError;
 
+/// A MySQL transaction wrapping a sqlx connection held open for the transaction's lifetime.
+///
+/// Uses `Mutex<Option<...>>` so that:
+/// - CRUD operations can borrow `&mut Transaction` while holding the lock.
+/// - `commit` / `rollback` consume the transaction by calling `take()`.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// let tx = driver.begin().await?;
+/// tx.insert(Query::insert("orders").insert(row)).await?;
+/// tx.commit().await?;
+/// ```
 pub struct MysqlTransaction {
     tx: Mutex<Option<sqlx::Transaction<'static, MySql>>>,
 }
 
 impl MysqlTransaction {
+    /// Wraps an open sqlx transaction in a [`MysqlTransaction`].
     pub fn new(tx: sqlx::Transaction<'static, MySql>) -> Self {
         Self { tx: Mutex::new(Some(tx)) }
     }

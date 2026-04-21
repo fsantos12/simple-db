@@ -1,0 +1,279 @@
+use async_trait::async_trait;
+use simple_db_core::{driver::DbExecutor, query::{FilterBuilder, FilterDefinition, InsertQuery, UpdateQuery, FindQuery}, types::{DbRow, DbValue, DbResult}};
+
+#[async_trait]
+pub trait DbEntityTrait: Clone {
+    fn collection_name() -> &'static str;
+    fn primary_key(&self) -> Vec<(&'static str, DbValue)>;
+
+    fn to_db(&self) -> Vec<(&'static str, DbValue)>;
+    fn from_db(row: &dyn DbRow) -> Self;
+
+    fn primary_key_filter(&self) -> FilterDefinition {
+        let pk = self.primary_key();
+        let fb = pk.into_iter().fold(FilterBuilder::new(), |builder, key_pair| {
+            builder.eq(key_pair.0, key_pair.1)
+        });
+        fb.build()
+    }
+
+    /// Finds all entities matching the filter.
+    ///
+    /// Returns tracked entities that can be updated and saved.
+    async fn find<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Vec<DbEntity<Self>>>
+    where F: FnOnce(FilterBuilder) -> FilterBuilder + Send {
+        let filter_builder = build(FilterBuilder::new());
+        let filter = filter_builder.build();
+        let query = FindQuery::new(Self::collection_name()).with_filters(filter);
+        let mut cursor = executor.find(query).await?;
+
+        let mut entities = Vec::new();
+        while let Some(row) = cursor.next().await? {
+            entities.push(DbEntity::from_db(row.as_ref()));
+        }
+
+        Ok(entities)
+    }
+
+    /// Finds all entities matching the filter as read-only (detached).
+    ///
+    /// Returns detached entities that cannot be updated or saved.
+    /// Use this for read-only queries returning data to clients.
+    async fn find_readonly<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Vec<DbEntity<Self>>>
+    where F: FnOnce(FilterBuilder) -> FilterBuilder + Send {
+        let filter_builder = build(FilterBuilder::new());
+        let filter = filter_builder.build();
+        let query = FindQuery::new(Self::collection_name()).with_filters(filter);
+        let mut cursor = executor.find(query).await?;
+
+        let mut entities = Vec::new();
+        while let Some(row) = cursor.next().await? {
+            entities.push(DbEntity::from_db_readonly(row.as_ref()));
+        }
+
+        Ok(entities)
+    }
+}
+
+/// Represents the tracking state of an entity.
+///
+/// - **Untracked**: A new entity that hasn't been saved to the database yet
+/// - **Tracked(original)**: An entity loaded from the database with its original value for change detection
+/// - **Detached**: An entity that was loaded from the database but is no longer being tracked
+#[derive(Debug, Clone)]
+pub enum TrackingState<T> {
+    Untracked,
+    Tracked(T),
+    Detached,
+}
+
+impl<T> TrackingState<T> {
+    /// Returns `true` if the entity is being tracked.
+    pub fn is_tracked(&self) -> bool {
+        matches!(self, TrackingState::Tracked(_))
+    }
+
+    /// Returns `true` if the entity is untracked.
+    pub fn is_untracked(&self) -> bool {
+        matches!(self, TrackingState::Untracked)
+    }
+
+    /// Returns `true` if the entity is detached.
+    pub fn is_detached(&self) -> bool {
+        matches!(self, TrackingState::Detached)
+    }
+
+    /// Returns a reference to the original value if tracked.
+    pub fn original(&self) -> Option<&T> {
+        match self {
+            TrackingState::Tracked(original) => Some(original),
+            _ => None,
+        }
+    }
+}
+
+/// A flexible entity wrapper that can operate in tracked or untracked mode.
+///
+/// `DbEntity<T>` manages:
+/// - The current state of the entity (`value`)
+/// - The tracking state (untracked, tracked with original, or detached)
+///
+/// When untracked, no tracking overhead is incurred. Use this for:
+/// - New entities that will be inserted
+/// - Entities that don't need change detection
+///
+/// When tracked, the original value is stored for:
+/// - Detecting which fields changed
+/// - Optimized updates
+///
+/// When detached, no tracking occurs. Use this for:
+/// - Read-only data returned to clients
+/// - Entities loaded for display only
+#[derive(Debug, Clone)]
+pub struct DbEntity<T: DbEntityTrait> {
+    /// The current state of the entity
+    value: T,
+    /// The tracking state with optional original value
+    state: TrackingState<T>,
+}
+
+impl<T: DbEntityTrait> DbEntity<T> {
+    // =========================================================================
+    // CONSTRUCTORS
+    // =========================================================================
+
+    /// Creates a new untracked entity.
+    ///
+    /// Untracked entities are new and haven't been saved to the database yet.
+    /// No tracking overhead is incurred.
+    pub fn new(entity: T) -> Self {
+        Self {
+            value: entity,
+            state: TrackingState::Untracked,
+        }
+    }
+
+    /// Creates a tracked entity from a database row.
+    ///
+    /// Tracked entities exist in the database and are monitored for changes.
+    /// The original value is stored for change detection.
+    pub fn from_db(row: &dyn DbRow) -> Self {
+        let entity = T::from_db(row);
+        Self {
+            value: entity.clone(),
+            state: TrackingState::Tracked(entity),
+        }
+    }
+
+    /// Creates a detached (read-only) entity from a database row.
+    ///
+    /// Detached entities are loaded from the database but not tracked.
+    /// Perfect for returning read-only data to clients.
+    /// No change detection or update capability.
+    pub fn from_db_readonly(row: &dyn DbRow) -> Self {
+        let entity = T::from_db(row);
+        Self {
+            value: entity,
+            state: TrackingState::Detached,
+        }
+    }
+
+    // =========================================================================
+    // GETTERS
+    // =========================================================================
+
+    /// Returns a reference to the current entity value.
+    pub fn get(&self) -> &T {
+        &self.value
+    }
+
+    /// Returns a mutable reference to the entity value.
+    ///
+    /// For untracked entities, this allows transformations without overhead.
+    /// For tracked entities, changes are monitored.
+    pub fn get_mut(&mut self) -> &mut T {
+        &mut self.value
+    }
+
+    /// Consumes the `DbEntity` and returns the inner entity value.
+    pub fn into_inner(self) -> T {
+        self.value
+    }
+
+    // =========================================================================
+    // STATUS
+    // =========================================================================
+
+    /// Returns a reference to the current tracking state.
+    pub fn get_state(&self) -> &TrackingState<T> {
+        &self.state
+    }
+
+    /// Returns `true` if the entity is being tracked.
+    pub fn is_tracked(&self) -> bool {
+        self.state.is_tracked()
+    }
+
+    /// Returns `true` if the entity is untracked.
+    pub fn is_untracked(&self) -> bool {
+        self.state.is_untracked()
+    }
+
+    /// Returns `true` if the entity is detached.
+    pub fn is_detached(&self) -> bool {
+        self.state.is_detached()
+    }
+
+    // =========================================================================
+    // CRUD
+    // =========================================================================
+
+    /// Saves the entity to the database.
+    ///
+    /// - If tracked: Updates only the changed fields
+    /// - If untracked: Inserts a new record
+    /// - If detached: Does nothing (detached entities cannot be saved)
+    ///
+    /// After successful save, the entity becomes tracked with the new original.
+    pub async fn save(&mut self, executor: &dyn DbExecutor) -> DbResult<()>
+    where
+        T: PartialEq,
+    {
+        match &self.state {
+            TrackingState::Untracked => {
+                let fields = self.value.to_db();
+                let row: Vec<(String, DbValue)> = fields
+                    .into_iter()
+                    .map(|(field, value)| (field.to_string(), value))
+                    .collect();
+                let insert_query = InsertQuery::new(T::collection_name()).insert(row);
+                executor.insert(insert_query).await?;
+                self.state = TrackingState::Tracked(self.value.clone());
+                Ok(())
+            }
+            TrackingState::Tracked(original) => {
+                let current_fields = self.value.to_db();
+                let original_fields = original.to_db();
+
+                // Find only the changed fields
+                let changed_fields: Vec<(String, DbValue)> = current_fields
+                    .iter()
+                    .zip(original_fields.iter())
+                    .filter(|(current, orig)| current.1 != orig.1)
+                    .map(|(current, _)| (current.0.to_string(), current.1.clone()))
+                    .collect();
+
+                // Only update if there are changes
+                if !changed_fields.is_empty() {
+                    let filter = self.value.primary_key_filter();
+                    let mut update_query = UpdateQuery::new(T::collection_name()).with_filters(filter);
+                    for (field, value) in changed_fields {
+                        update_query = update_query.set(field, value);
+                    }
+                    executor.update(update_query).await?;
+                }
+
+                self.state = TrackingState::Tracked(self.value.clone());
+                Ok(())
+            }
+            TrackingState::Detached => {
+                // Detached entities cannot be saved
+                Ok(())
+            }
+        }
+    }
+
+    /// Deletes the entity from the database.
+    ///
+    /// Only tracked entities can be deleted. After deletion, the entity becomes detached.
+    pub async fn delete(&mut self, executor: &dyn DbExecutor) -> DbResult<()> {
+        if self.is_tracked() {
+            use simple_db_core::query::DeleteQuery;
+            let filter = self.value.primary_key_filter();
+            let delete_query = DeleteQuery::new(T::collection_name()).with_filters(filter);
+            executor.delete(delete_query).await?;
+            self.state = TrackingState::Detached;
+        }
+        Ok(())
+    }
+}

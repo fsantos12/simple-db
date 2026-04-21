@@ -5,3 +5,10 @@ edition.workspace = true
 license.workspace = true
 
 [dependencies]
+# --- Internal ---
+simple-db-core = { workspace = true }
+
+# --- Async & Runtime ---
+tokio = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }

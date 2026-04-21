@@ -6,7 +6,7 @@ use simple_db_core::{
     query::{DeleteQuery, FindQuery, InsertQuery, UpdateQuery},
     types::{DbCursor, DbError, DbResult},
 };
-use sqlx::PgPool;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 use super::{executor::{exec_delete, exec_find, exec_insert, exec_update}, PostgresTransaction};
 
@@ -30,6 +30,25 @@ impl PostgresDriver {
     /// Creates a new [`PostgresDriver`] wrapping the given connection pool.
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
+    }
+
+    /// Connects to a PostgreSQL database at `url` with a default pool of 5 connections.
+    pub async fn connect(url: &str) -> DbResult<Self> {
+        let pool = PgPoolOptions::new()
+            .max_connections(5)
+            .connect(url)
+            .await
+            .map_err(DbError::driver)?;
+        Ok(Self::new(pool))
+    }
+
+    /// Executes a raw SQL statement (DDL or otherwise) against the pool.
+    pub async fn execute_raw(&self, sql: &str) -> DbResult<()> {
+        sqlx::query(sql)
+            .execute(&self.pool)
+            .await
+            .map_err(DbError::driver)?;
+        Ok(())
     }
 }
 

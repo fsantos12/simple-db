@@ -6,7 +6,7 @@ use simple_db_core::{
     query::{DeleteQuery, FindQuery, InsertQuery, UpdateQuery},
     types::{DbCursor, DbError, DbResult},
 };
-use sqlx::SqlitePool;
+use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
 
 use super::{
     executor::{exec_delete, exec_find, exec_insert, exec_update},
@@ -33,6 +33,26 @@ impl SqliteDriver {
     /// Creates a new [`SqliteDriver`] wrapping the given connection pool.
     pub fn new(pool: SqlitePool) -> Self {
         Self { pool }
+    }
+
+    /// Connects to a SQLite database at `url` with a default pool of 5 connections.
+    /// Use `"sqlite://:memory:"` for an in-memory database.
+    pub async fn connect(url: &str) -> DbResult<Self> {
+        let pool = SqlitePoolOptions::new()
+            .max_connections(5)
+            .connect(url)
+            .await
+            .map_err(DbError::driver)?;
+        Ok(Self::new(pool))
+    }
+
+    /// Executes a raw SQL statement (DDL or otherwise) against the pool.
+    pub async fn execute_raw(&self, sql: &str) -> DbResult<()> {
+        sqlx::query(sql)
+            .execute(&self.pool)
+            .await
+            .map_err(DbError::driver)?;
+        Ok(())
     }
 }
 

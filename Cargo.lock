@@ -1450,7 +1450,6 @@ version = "0.1.0"
 dependencies = [
  "simple-db",
  "simple-db-test-lib",
- "sqlx",
  "tokio",
 ]
 
@@ -1477,7 +1476,6 @@ version = "0.1.0"
 dependencies = [
  "simple-db",
  "simple-db-test-lib",
- "sqlx",
  "tokio",
 ]
 
@@ -1499,7 +1497,6 @@ version = "0.1.0"
 dependencies = [
  "simple-db",
  "simple-db-test-lib",
- "sqlx",
  "tokio",
 ]
 

@@ -8,7 +8,6 @@ name = "simple-db-mysql-test"
 path = "src/main.rs"
 
 [dependencies]
-sqlx = { workspace = true, features = ["mysql"] }
 simple-db = { workspace = true, features = ["mysql"] }
 simple-db-test-lib.workspace = true
 tokio.workspace = true

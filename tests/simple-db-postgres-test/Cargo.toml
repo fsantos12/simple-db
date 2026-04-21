@@ -8,8 +8,7 @@ name = "simple-db-postgres-test"
 path = "src/main.rs"
 
 [dependencies]
-simple-db-test-lib.workspace = true
-simple-db = { workspace = true, features = ["postgres"] }
-async-trait.workspace = true
-tokio.workspace = true
 sqlx = { workspace = true, features = ["postgres"] }
+simple-db = { workspace = true, features = ["postgres"] }
+simple-db-test-lib.workspace = true
+tokio.workspace = true

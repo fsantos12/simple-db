@@ -8,8 +8,7 @@ name = "simple-db-sqlite-test"
 path = "src/main.rs"
 
 [dependencies]
-simple-db-test-lib.workspace = true
-simple-db = { workspace = true, features = ["sqlite"] }
-async-trait.workspace = true
-tokio.workspace = true
 sqlx = { workspace = true, features = ["sqlite"] }
+simple-db = { workspace = true, features = ["sqlite"] }
+simple-db-test-lib.workspace = true
+tokio.workspace = true

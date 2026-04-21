@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 use simple_db_core::types::{DbRow, DbValue};
 use sqlx::{mysql::MySqlRow, Column, Row, TypeInfo, ValueRef};
 
@@ -28,9 +29,16 @@ impl DbRow for MysqlDbRow {
                 let val: i64 = self.row.try_get(index).ok()?;
                 Some(DbValue::from_i64(val))
             }
-            "FLOAT" | "DOUBLE" | "DECIMAL" => {
+            "FLOAT" | "DOUBLE" => {
                 let val: f64 = self.row.try_get(index).ok()?;
                 Some(DbValue::from_f64(val))
+            }
+            // AVG/SUM aggregates on integer columns return NEWDECIMAL (MySQL wire type 246).
+            // Decode via rust_decimal then convert to f64.
+            "DECIMAL" | "NEWDECIMAL" => {
+                let val: Decimal = self.row.try_get(index).ok()?;
+                let f: f64 = val.to_string().parse().ok()?;
+                Some(DbValue::from_f64(f))
             }
             "BOOL" | "BOOLEAN" => {
                 let val: bool = self.row.try_get(index).ok()?;

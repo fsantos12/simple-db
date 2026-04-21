@@ -1437,6 +1437,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "futures",
+ "rust_decimal",
  "simple-db-core",
  "sqlx",
  "thiserror",
@@ -1447,7 +1448,6 @@ dependencies = [
 name = "simple-db-mysql-test"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "simple-db",
  "simple-db-test-lib",
  "sqlx",
@@ -1464,6 +1464,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "futures",
+ "rust_decimal",
  "simple-db-core",
  "sqlx",
  "thiserror",
@@ -1474,7 +1475,6 @@ dependencies = [
 name = "simple-db-postgres-test"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "simple-db",
  "simple-db-test-lib",
  "sqlx",
@@ -1497,7 +1497,6 @@ dependencies = [
 name = "simple-db-sqlite-test"
 version = "0.1.0"
 dependencies = [
- "async-trait",
  "simple-db",
  "simple-db-test-lib",
  "sqlx",
@@ -1508,7 +1507,7 @@ dependencies = [
 name = "simple-db-test-lib"
 version = "0.1.0"
 dependencies = [
- "async-trait",
+ "futures",
  "simple-db",
  "tokio",
 ]
@@ -1604,6 +1603,7 @@ dependencies = [
  "memchr",
  "once_cell",
  "percent-encoding",
+ "rust_decimal",
  "rustls",
  "serde",
  "serde_json",
@@ -1688,6 +1688,7 @@ dependencies = [
  "percent-encoding",
  "rand",
  "rsa",
+ "rust_decimal",
  "serde",
  "sha1",
  "sha2",
@@ -1727,6 +1728,7 @@ dependencies = [
  "memchr",
  "once_cell",
  "rand",
+ "rust_decimal",
  "serde",
  "serde_json",
  "sha2",

@@ -1,3 +1,4 @@
+use rust_decimal::Decimal;
 use simple_db_core::types::{DbRow, DbValue};
 use sqlx::{postgres::PgRow, Column, Row, TypeInfo, ValueRef};
 
@@ -43,6 +44,13 @@ impl DbRow for PostgresDbRow {
             "FLOAT8" | "DOUBLE PRECISION" | "REAL" => {
                 let val: f64 = self.row.try_get(index).ok()?;
                 Some(DbValue::from_f64(val))
+            }
+            // AVG(INTEGER) and similar aggregates return NUMERIC in Postgres.
+            // Decode via rust_decimal then convert to f64.
+            "NUMERIC" => {
+                let val: Decimal = self.row.try_get(index).ok()?;
+                let f: f64 = val.to_string().parse().ok()?;
+                Some(DbValue::from_f64(f))
             }
             "BOOL" => {
                 let val: bool = self.row.try_get(index).ok()?;

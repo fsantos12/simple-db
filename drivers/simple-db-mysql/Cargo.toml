@@ -11,7 +11,8 @@ simple-db-core = { workspace = true }
 thiserror = { workspace = true }
 
 # --- SQL ---
-sqlx = { workspace = true, features = ["mysql"] }
+sqlx         = { workspace = true, features = ["mysql", "rust_decimal"] }
+rust_decimal = { workspace = true }
 
 # --- Async & Runtime ---
 tokio = { workspace = true }

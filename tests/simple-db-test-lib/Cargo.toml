@@ -5,5 +5,5 @@ edition.workspace = true
 
 [dependencies]
 simple-db.workspace = true
-async-trait.workspace = true
+futures.workspace = true
 tokio.workspace = true

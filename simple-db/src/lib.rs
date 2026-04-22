@@ -25,6 +25,7 @@ pub use simple_db_core::DbContext;
 pub use simple_db_core::driver;
 pub use simple_db_core::query;
 pub use simple_db_core::types;
+pub use simple_db_core::{filter, project, sort, group};
 
 #[cfg(feature = "orm")]
 pub use simple_db_orm::{DbEntity, DbEntityTrait, TrackingState};

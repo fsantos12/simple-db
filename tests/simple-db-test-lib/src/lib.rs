@@ -2,7 +2,8 @@ use std::time::{Duration, Instant};
 
 use futures::future::BoxFuture;
 use simple_db::DbContext;
-use simple_db::query::{FilterBuilder, Query};
+use simple_db::{filter, project, sort};
+use simple_db::query::Query;
 use simple_db::types::{DbRow, DbRowExt, DbValue};
 
 mod orm_tests;
@@ -235,7 +236,7 @@ fn single_insert_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let db_count = count_rows(&ctx).await;
 
         let mut cursor = ctx.find(
-            Query::find("users").project(|b| b.field("name").field("age").field("balance"))
+            Query::find("users").project(project!(field("name"), field("age"), field("balance")))
         ).await.unwrap();
         let row = cursor.next().await.unwrap().unwrap();
         let name: String = row.get_by_name_as("name").unwrap();
@@ -329,8 +330,8 @@ fn find_eq_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
         let mut cursor = ctx.find(
             Query::find("users")
-                .project(|b| b.field("name").field("age"))
-                .filter(|b| b.eq("name", "Alice"))
+                .project(project!(field("name"), field("age")))
+                .filter(filter!(eq("name", "Alice")))
         ).await.unwrap();
 
         let mut count = 0usize;
@@ -364,23 +365,23 @@ fn find_range_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.gt("age", 28i64))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(gt("age", 28i64)))).await.unwrap();
         let mut gt = 0usize;
         while c.next().await.unwrap().is_some() { gt += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.lt("age", 30i64))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(lt("age", 30i64)))).await.unwrap();
         let mut lt = 0usize;
         while c.next().await.unwrap().is_some() { lt += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.lte("age", 25i64))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(lte("age", 25i64)))).await.unwrap();
         let mut lte = 0usize;
         while c.next().await.unwrap().is_some() { lte += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.between("age", 25i64, 35i64))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(between("age", 25i64, 35i64)))).await.unwrap();
         let mut between = 0usize;
         while c.next().await.unwrap().is_some() { between += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.not_between("age", 25i64, 35i64))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(not_between("age", 25i64, 35i64)))).await.unwrap();
         let mut not_between = 0usize;
         while c.next().await.unwrap().is_some() { not_between += 1; }
 
@@ -408,19 +409,19 @@ fn find_string_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.contains("name", "li"))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(contains("name", "li")))).await.unwrap();
         let mut contains = 0usize;
         while c.next().await.unwrap().is_some() { contains += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.not_contains("name", "li"))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(not_contains("name", "li")))).await.unwrap();
         let mut not_contains = 0usize;
         while c.next().await.unwrap().is_some() { not_contains += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.starts_with("name", "A"))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(starts_with("name", "A")))).await.unwrap();
         let mut starts = 0usize;
         while c.next().await.unwrap().is_some() { starts += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.ends_with("name", "e"))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(ends_with("name", "e")))).await.unwrap();
         let mut ends = 0usize;
         while c.next().await.unwrap().is_some() { ends += 1; }
 
@@ -447,13 +448,13 @@ fn find_in_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
 
         let mut c = ctx.find(
-            Query::find("users").filter(|b| b.is_in("name", vec!["Alice", "Bob"]))
+            Query::find("users").filter(filter!(is_in("name", vec!["Alice", "Bob"])))
         ).await.unwrap();
         let mut in_count = 0usize;
         while c.next().await.unwrap().is_some() { in_count += 1; }
 
         let mut c = ctx.find(
-            Query::find("users").filter(|b| b.not_in("name", vec!["Alice", "Bob"]))
+            Query::find("users").filter(filter!(not_in("name", vec!["Alice", "Bob"])))
         ).await.unwrap();
         let mut not_in_count = 0usize;
         while c.next().await.unwrap().is_some() { not_in_count += 1; }
@@ -480,7 +481,7 @@ fn find_or_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
         let mut c = ctx.find(
             Query::find("users")
-                .filter(|b| b.or(FilterBuilder::new().eq("active", 0i64).gt("balance", 800.0f64).build()))
+                .filter(filter!(or(filter!(eq("active", 0i64), gt("balance", 800.0f64)))))
         ).await.unwrap();
         let mut count = 0usize;
         while c.next().await.unwrap().is_some() { count += 1; }
@@ -507,7 +508,7 @@ fn find_not_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
         let mut c = ctx.find(
             Query::find("users")
-                .filter(|b| b.not(FilterBuilder::new().eq("active", 1i64).build()))
+                .filter(filter!(not(filter!(eq("active", 1i64)))))
         ).await.unwrap();
         let mut count = 0usize;
         while c.next().await.unwrap().is_some() { count += 1; }
@@ -533,11 +534,11 @@ fn find_null_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.is_null("bio"))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(is_null("bio")))).await.unwrap();
         let mut null_n = 0usize;
         while c.next().await.unwrap().is_some() { null_n += 1; }
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.is_not_null("bio"))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(is_not_null("bio")))).await.unwrap();
         let mut not_null_n = 0usize;
         while c.next().await.unwrap().is_some() { not_null_n += 1; }
 
@@ -562,15 +563,15 @@ fn find_pagination_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
 
-        let mut c = ctx.find(Query::find("users").order_by(|b| b.asc("id")).limit(2).offset(0)).await.unwrap();
+        let mut c = ctx.find(Query::find("users").order_by(sort!(asc("id"))).limit(2).offset(0)).await.unwrap();
         let mut page1 = 0usize;
         while c.next().await.unwrap().is_some() { page1 += 1; }
 
-        let mut c = ctx.find(Query::find("users").order_by(|b| b.asc("id")).limit(2).offset(2)).await.unwrap();
+        let mut c = ctx.find(Query::find("users").order_by(sort!(asc("id"))).limit(2).offset(2)).await.unwrap();
         let mut page2 = 0usize;
         while c.next().await.unwrap().is_some() { page2 += 1; }
 
-        let mut c = ctx.find(Query::find("users").order_by(|b| b.asc("id")).limit(2).offset(4)).await.unwrap();
+        let mut c = ctx.find(Query::find("users").order_by(sort!(asc("id"))).limit(2).offset(4)).await.unwrap();
         let mut page3 = 0usize;
         while c.next().await.unwrap().is_some() { page3 += 1; }
 
@@ -598,7 +599,7 @@ fn find_sorting_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
 
         let mut c = ctx.find(
-            Query::find("users").project(|b| b.field("age")).order_by(|b| b.asc("age"))
+            Query::find("users").project(project!(field("age"))).order_by(sort!(asc("age")))
         ).await.unwrap();
         let mut asc: Vec<i64> = Vec::new();
         while let Some(row) = c.next().await.unwrap() {
@@ -606,7 +607,7 @@ fn find_sorting_test(context: &DbContext) -> BoxFuture<'static, bool> {
         }
 
         let mut c = ctx.find(
-            Query::find("users").project(|b| b.field("age")).order_by(|b| b.desc("age"))
+            Query::find("users").project(project!(field("age"))).order_by(sort!(desc("age")))
         ).await.unwrap();
         let mut desc: Vec<i64> = Vec::new();
         while let Some(row) = c.next().await.unwrap() {
@@ -638,21 +639,21 @@ fn find_aggregations_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
         let mut cursor = ctx.find(
-            Query::find("users").project(|b| b
-                .count_all()    // idx 0 → i64
-                .avg("age")     // idx 1 → f64
-                .sum("balance") // idx 2 → f64
-                .min("age")     // idx 3 → i64
-                .max("age")     // idx 4 → i64
-            )
+            Query::find("users").project(project!(
+                count_all(),    // idx 0 → i64
+                avg("age"),     // idx 1 → f64
+                sum("balance"), // idx 2 → f64
+                min("age"),     // idx 3 → i64
+                max("age")      // idx 4 → i64
+            ))
         ).await.unwrap();
         let row = cursor.next().await.unwrap().unwrap();
         let elapsed = t.elapsed();
 
-        let count:   i64 = row.get_by_index_as(0).unwrap_or(-1); // COUNT(*) → INT8 on both backends
-        let avg_age: f64 = idx_f64(&*row, 1); // NUMERIC on Postgres, NEWDECIMAL on MySQL, REAL on SQLite
-        let sum_bal: f64 = idx_f64(&*row, 2); // same: depends on backend
-        let min_age      = idx_int(&*row, 3); // MIN(INTEGER): INT4 on Postgres, INTEGER on SQLite
+        let count:   i64 = row.get_by_index_as(0).unwrap_or(-1);
+        let avg_age: f64 = idx_f64(&*row, 1);
+        let sum_bal: f64 = idx_f64(&*row, 2);
+        let min_age      = idx_int(&*row, 3);
         let max_age      = idx_int(&*row, 4);
 
         let count_ok = count   == 5;
@@ -725,13 +726,13 @@ fn update_single_field_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let affected = ctx.update(
             Query::update("users")
                 .set("email", "newalice@example.com")
-                .filter(|b| b.eq("name", "Alice"))
+                .filter(filter!(eq("name", "Alice")))
         ).await.unwrap();
 
         let new_email = ctx.find(
             Query::find("users")
-                .project(|b| b.field("email"))
-                .filter(|b| b.eq("name", "Alice"))
+                .project(project!(field("email")))
+                .filter(filter!(eq("name", "Alice")))
         ).await.unwrap()
             .next().await.unwrap()
             .map(|r| r.get_by_name_as::<String>("email").unwrap_or_default())
@@ -765,13 +766,13 @@ fn update_multiple_fields_test(context: &DbContext) -> BoxFuture<'static, bool> 
                 .set("name",    "Alice Updated")
                 .set("balance", 9999.0f64)
                 .set("active",  0i64)
-                .filter(|b| b.eq("name", "Alice"))
+                .filter(filter!(eq("name", "Alice")))
         ).await.unwrap();
 
         let fields_ok = ctx.find(
             Query::find("users")
-                .project(|b| b.field("name").field("balance").field("active"))
-                .filter(|b| b.eq("name", "Alice Updated"))
+                .project(project!(field("name"), field("balance"), field("active")))
+                .filter(filter!(eq("name", "Alice Updated")))
         ).await.unwrap()
             .next().await.unwrap()
             .map(|r| {
@@ -804,10 +805,10 @@ fn update_bulk_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
         let affected = ctx.update(
-            Query::update("users").set("active", 0i64).filter(|b| b.eq("active", 1i64))
+            Query::update("users").set("active", 0i64).filter(filter!(eq("active", 1i64)))
         ).await.unwrap();
 
-        let mut c = ctx.find(Query::find("users").filter(|b| b.eq("active", 0i64))).await.unwrap();
+        let mut c = ctx.find(Query::find("users").filter(filter!(eq("active", 0i64)))).await.unwrap();
         let mut inactive = 0usize;
         while c.next().await.unwrap().is_some() { inactive += 1; }
         let elapsed = t.elapsed();
@@ -845,7 +846,7 @@ fn delete_with_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let t = Instant::now();
         let affected = ctx.delete(
-            Query::delete("users").filter(|b| b.lt("age", 30i64))
+            Query::delete("users").filter(filter!(lt("age", 30i64)))
         ).await.unwrap();
         let remaining = count_rows(&ctx).await;
         let elapsed = t.elapsed();
@@ -953,4 +954,3 @@ fn transaction_rollback_test(context: &DbContext) -> BoxFuture<'static, bool> {
         ok
     })
 }
-

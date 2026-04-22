@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use simple_db_core::{driver::DbExecutor, query::{FilterBuilder, FilterDefinition, InsertQuery, UpdateQuery, FindQuery}, types::{DbRow, DbValue, DbResult}};
+use simple_db_core::{driver::DbExecutor, query::{FilterDefinition, InsertQuery, UpdateQuery, FindQuery}, types::{DbRow, DbValue, DbResult}};
 
 #[async_trait]
 pub trait DbEntityTrait: Clone {
@@ -10,21 +10,16 @@ pub trait DbEntityTrait: Clone {
     fn from_db(row: &dyn DbRow) -> Self;
 
     fn primary_key_filter(&self) -> FilterDefinition {
+        use simple_db_core::query::FilterBuilder;
         let pk = self.primary_key();
-        let fb = pk.into_iter().fold(FilterBuilder::new(), |builder, key_pair| {
-            builder.eq(key_pair.0, key_pair.1)
-        });
-        fb.build()
+        pk.into_iter()
+            .fold(FilterBuilder::new(), |builder, (key, val)| builder.eq(key, val))
+            .build()
     }
 
-    /// Finds all entities matching the filter.
-    ///
-    /// Returns tracked entities that can be updated and saved.
-    async fn find<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Vec<DbEntity<Self>>>
-    where F: FnOnce(FilterBuilder) -> FilterBuilder + Send {
-        let filter_builder = build(FilterBuilder::new());
-        let filter = filter_builder.build();
-        let query = FindQuery::new(Self::collection_name()).with_filters(filter);
+    /// Finds all entities matching the filter, returned as tracked entities.
+    async fn find(executor: &dyn DbExecutor, filter: FilterDefinition) -> DbResult<Vec<DbEntity<Self>>> {
+        let query = FindQuery::new(Self::collection_name()).filter(filter);
         let mut cursor = executor.find(query).await?;
 
         let mut entities = Vec::new();
@@ -36,14 +31,8 @@ pub trait DbEntityTrait: Clone {
     }
 
     /// Finds all entities matching the filter as read-only (detached).
-    ///
-    /// Returns detached entities that cannot be updated or saved.
-    /// Use this for read-only queries returning data to clients.
-    async fn find_readonly<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Vec<DbEntity<Self>>>
-    where F: FnOnce(FilterBuilder) -> FilterBuilder + Send {
-        let filter_builder = build(FilterBuilder::new());
-        let filter = filter_builder.build();
-        let query = FindQuery::new(Self::collection_name()).with_filters(filter);
+    async fn find_readonly(executor: &dyn DbExecutor, filter: FilterDefinition) -> DbResult<Vec<DbEntity<Self>>> {
+        let query = FindQuery::new(Self::collection_name()).filter(filter);
         let mut cursor = executor.find(query).await?;
 
         let mut entities = Vec::new();
@@ -239,7 +228,6 @@ impl<T: DbEntityTrait> DbEntity<T> {
                     .map(|(name, _)| name)
                     .collect();
 
-                // Find only the changed fields, excluding primary key
                 let changed_fields: Vec<(String, DbValue)> = current_fields
                     .iter()
                     .zip(original_fields.iter())
@@ -247,10 +235,9 @@ impl<T: DbEntityTrait> DbEntity<T> {
                     .map(|(current, _)| (current.0.to_string(), current.1.clone()))
                     .collect();
 
-                // Only update if there are changes
                 if !changed_fields.is_empty() {
                     let filter = self.value.primary_key_filter();
-                    let mut update_query = UpdateQuery::new(T::collection_name()).with_filters(filter);
+                    let mut update_query = UpdateQuery::new(T::collection_name()).filter(filter);
                     for (field, value) in changed_fields {
                         update_query = update_query.set(field, value);
                     }
@@ -260,10 +247,7 @@ impl<T: DbEntityTrait> DbEntity<T> {
                 self.state = TrackingState::Tracked(self.value.clone());
                 Ok(())
             }
-            TrackingState::Detached => {
-                // Detached entities cannot be saved
-                Ok(())
-            }
+            TrackingState::Detached => Ok(()),
         }
     }
 
@@ -274,7 +258,7 @@ impl<T: DbEntityTrait> DbEntity<T> {
         if self.is_tracked() {
             use simple_db_core::query::DeleteQuery;
             let filter = self.value.primary_key_filter();
-            let delete_query = DeleteQuery::new(T::collection_name()).with_filters(filter);
+            let delete_query = DeleteQuery::new(T::collection_name()).filter(filter);
             executor.delete(delete_query).await?;
             self.state = TrackingState::Detached;
         }

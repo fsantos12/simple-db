@@ -19,7 +19,7 @@ pub use groups::{GroupBuilder, GroupDefinition};
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{filter, macro_name, sort, group};
+    use crate::{filter, project, sort, group};
 
     // =========================================================================
     // FILTER BUILDER TESTS
@@ -101,63 +101,63 @@ mod tests {
 
     #[test]
     fn test_single_field_projection() {
-        let projections = macro_name!(field("name"));
+        let projections = project!(field("name"));
 
         assert_eq!(projections.len(), 1);
     }
 
     #[test]
     fn test_multiple_field_projection() {
-        let projections = macro_name!(field("id"), field("name"), field("email"));
+        let projections = project!(field("id"), field("name"), field("email"));
 
         assert_eq!(projections.len(), 3);
     }
 
     #[test]
     fn test_aggregation_count_all() {
-        let projections = macro_name!(count_all());
+        let projections = project!(count_all());
 
         assert_eq!(projections.len(), 1);
     }
 
     #[test]
     fn test_aggregation_count() {
-        let projections = macro_name!(count("id"));
+        let projections = project!(count("id"));
 
         assert_eq!(projections.len(), 1);
     }
 
     #[test]
     fn test_aggregation_sum() {
-        let projections = macro_name!(sum("total_price"));
+        let projections = project!(sum("total_price"));
 
         assert_eq!(projections.len(), 1);
     }
 
     #[test]
     fn test_aggregation_avg() {
-        let projections = macro_name!(avg("rating"));
+        let projections = project!(avg("rating"));
 
         assert_eq!(projections.len(), 1);
     }
 
     #[test]
     fn test_aggregation_min_max() {
-        let projections = macro_name!(min("price"), max("price"));
+        let projections = project!(min("price"), max("price"));
 
         assert_eq!(projections.len(), 2);
     }
 
     #[test]
     fn test_multiple_aggregates() {
-        let projections = macro_name!(sum("total"), count_all());
+        let projections = project!(sum("total"), count_all());
 
         assert_eq!(projections.len(), 2);
     }
 
     #[test]
     fn test_mixed_fields_and_aggregates() {
-        let projections = macro_name!(field("category"), count_all(), sum("amount"));
+        let projections = project!(field("category"), count_all(), sum("amount"));
 
         assert_eq!(projections.len(), 3);
     }

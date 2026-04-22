@@ -35,9 +35,9 @@ pub use delete::DeleteQuery;
 ///
 /// // SELECT query
 /// let q = Query::find("users")
-///     .project(|b| b.field("name").field("email"))
-///     .filter(|b| b.gt("age", 18i32))
-///     .order_by(|b| b.asc("name"))
+///     .project(project!(field("name"), field("email")))
+///     .filter(filter!(gt("age", 18i32)))
+///     .order_by(sort!(asc("name")))
 ///     .limit(10);
 ///
 /// // INSERT query
@@ -47,11 +47,11 @@ pub use delete::DeleteQuery;
 /// // UPDATE query
 /// let q = Query::update("users")
 ///     .set("email", "newemail@example.com")
-///     .filter(|b| b.eq("id", 1i32));
+///     .filter(filter!(eq("id", 1i32)));
 ///
 /// // DELETE query
 /// let q = Query::delete("users")
-///     .filter(|b| b.eq("id", 1i32));
+///     .filter(filter!(eq("id", 1i32)));
 /// ```
 pub struct Query;
 
@@ -109,11 +109,10 @@ impl Collection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::filter;
+    use crate::{filter, project, sort};
 
     #[test]
     fn test_find_query_creation() {
-        // Test basic FindQuery creation
         let query = Query::find("users");
         assert_eq!(query.collection, "users");
         assert_eq!(query.projections.len(), 0);
@@ -123,76 +122,61 @@ mod tests {
 
     #[test]
     fn test_find_query_with_single_projection() {
-        // Test selecting a single field
         let query = Query::find("users")
-            .project(|b| b.field("name"));
-        
+            .project(project!(field("name")));
+
         assert_eq!(query.collection, "users");
         assert!(!query.projections.is_empty());
     }
 
     #[test]
     fn test_find_query_with_multiple_projections() {
-        // Test selecting multiple fields
         let query = Query::find("users")
-            .project(|b| b
-                .field("id")
-                .field("name")
-                .field("email")
-            );
-        
+            .project(project!(field("id"), field("name"), field("email")));
+
         assert_eq!(query.projections.len(), 3);
     }
 
     #[test]
     fn test_find_query_with_filter() {
-        // Test adding filter conditions
         let query = Query::find("users")
-            .with_filters(filter!(eq("age", 25)));
+            .filter(filter!(eq("age", 25)));
 
         assert!(!query.filters.is_empty());
     }
 
     #[test]
     fn test_find_query_with_multiple_filters() {
-        // Test multiple filter conditions (implicit AND)
         let query = Query::find("users")
-            .with_filters(filter!(eq("age", 25), eq("active", true)));
+            .filter(filter!(eq("age", 25), eq("active", true)));
 
         assert_eq!(query.filters.len(), 2);
     }
 
     #[test]
     fn test_find_query_with_limit_offset() {
-        // Test pagination with LIMIT and OFFSET
         let query = Query::find("users")
             .limit(10)
             .offset(20);
-        
+
         assert_eq!(query.limit, Some(10));
         assert_eq!(query.offset, Some(20));
     }
 
     #[test]
     fn test_find_query_with_order_by() {
-        // Test sorting results
         let query = Query::find("users")
-            .order_by(|b| b.asc("name"));
-        
+            .order_by(sort!(asc("name")));
+
         assert!(!query.sorts.is_empty());
     }
 
     #[test]
     fn test_find_query_complex_composition() {
-        // Test building a complex query with all components
         let query = Query::find("users")
-            .project(|b| b
-                .field("id")
-                .field("name")
-                .field("email")
-            )
-            .with_filters(filter!(gt("age", 18), eq("active", true)))
-            .order_by(|b| b.desc("created_at"))
+            .project(project!(field("id"), field("name"), field("email")))
+            .filter(filter!(gt("age", 18), eq("active", true)))
+            .order_by(sort!(desc("created_at")))
             .limit(50)
             .offset(0);
 
@@ -204,27 +188,24 @@ mod tests {
 
     #[test]
     fn test_insert_query_creation() {
-        // Test creating a new InsertQuery
         let query = Query::insert("users");
         assert_eq!(query.collection, "users");
     }
 
     #[test]
     fn test_insert_query_with_values() {
-        // Test inserting a single row
         let row = vec![
             ("name", "Alice"),
             ("email", "alice@example.com"),
         ];
         let query = Query::insert("users")
             .insert(row);
-        
+
         assert_eq!(query.values.len(), 1);
     }
 
     #[test]
     fn test_bulk_insert_query() {
-        // Test batch inserting multiple rows
         let row1 = vec![
             ("name", "Alice"),
             ("email", "alice@example.com"),
@@ -233,27 +214,25 @@ mod tests {
             ("name", "Bob"),
             ("email", "bob@example.com"),
         ];
-        
+
         let query = Query::insert("users")
             .insert(row1)
             .insert(row2);
-        
+
         assert_eq!(query.values.len(), 2);
     }
 
     #[test]
     fn test_update_query_creation() {
-        // Test creating a new UpdateQuery
         let query = Query::update("users");
         assert_eq!(query.collection, "users");
     }
 
     #[test]
     fn test_update_query_with_filter() {
-        // Test updating with WHERE conditions
         let query = Query::update("users")
             .set("email", "newemail@example.com")
-            .with_filters(filter!(eq("id", 1)));
+            .filter(filter!(eq("id", 1)));
 
         assert!(!query.updates.is_empty());
         assert!(!query.filters.is_empty());
@@ -261,35 +240,31 @@ mod tests {
 
     #[test]
     fn test_update_query_multiple_fields() {
-        // Test updating multiple fields
         let query = Query::update("users")
             .set("email", "new@example.com")
             .set("updated_at", "2024-04-13");
-        
+
         assert_eq!(query.updates.len(), 2);
     }
 
     #[test]
     fn test_delete_query_creation() {
-        // Test creating a new DeleteQuery
         let query = Query::delete("users");
         assert_eq!(query.collection, "users");
     }
 
     #[test]
     fn test_delete_query_with_filter() {
-        // Test deleting with WHERE conditions
         let query = Query::delete("users")
-            .with_filters(filter!(eq("id", 1)));
+            .filter(filter!(eq("id", 1)));
 
         assert!(!query.filters.is_empty());
     }
 
     #[test]
     fn test_delete_query_with_multiple_filters() {
-        // Test deleting with multiple conditions
         let query = Query::delete("users")
-            .with_filters(filter!(lt("age", 18), eq("archived", true)));
+            .filter(filter!(lt("age", 18), eq("archived", true)));
 
         assert_eq!(query.filters.len(), 2);
     }

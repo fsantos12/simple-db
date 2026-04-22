@@ -10,7 +10,7 @@ use crate::query::{FilterBuilder, FilterDefinition};
 ///
 /// ```rust,ignore
 /// let query = Query::delete("users")
-///     .filter(|b| b.eq("id", 42));
+///     .filter(filter!(eq("id", 42)));
 /// ```
 ///
 /// # Safety Note
@@ -32,18 +32,20 @@ impl DeleteQuery {
         }
     }
 
-    /// Adds filter conditions (WHERE clause) to target specific rows.
+    /// Adds filter conditions (WHERE clause) from a pre-built definition.
+    ///
     /// Multiple calls use implicit AND logic.
-    pub fn filter<F>(mut self, build: F) -> Self 
-    where F: FnOnce(FilterBuilder) -> FilterBuilder {
-        let builder = build(FilterBuilder::new());
-        self.filters.extend(builder.build());
+    pub fn filter(mut self, filters: FilterDefinition) -> Self {
+        self.filters.extend(filters);
         self
     }
 
-    /// Sets the entire filter definition at once.
-    pub fn with_filters(mut self, filters: FilterDefinition) -> Self {
-        self.filters.extend(filters);
+    /// Adds filter conditions via a builder closure.
+    pub fn with_filter_builder<F>(mut self, build: F) -> Self
+    where
+        F: FnOnce(FilterBuilder) -> FilterBuilder,
+    {
+        self.filters.extend(build(FilterBuilder::new()).build());
         self
     }
 }

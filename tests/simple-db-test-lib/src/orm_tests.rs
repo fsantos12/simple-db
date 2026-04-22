@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use futures::future::BoxFuture;
 use simple_db::{DbContext, DbEntity, DbEntityTrait};
+use simple_db::filter;
 use simple_db::types::{DbValue, DbRow};
 use simple_db::query::Query;
 
@@ -99,12 +100,7 @@ async fn truncate(ctx: &DbContext) {
 }
 
 async fn truncate_and_reset(ctx: &DbContext) {
-    // Truncate to clear data
     truncate(ctx).await;
-
-    // Reset auto-increment for MySQL/PostgreSQL
-    // This is a workaround - using raw SQL to reset the ID sequence
-    // SQLite doesn't need this, but it also doesn't hurt
     let _ = ctx.delete(Query::delete("users")).await;
 }
 
@@ -123,18 +119,14 @@ fn orm_save_new(context: &DbContext) -> BoxFuture<'static, bool> {
         let user = UserEntity::new(10000, "Alice".to_string(), "alice@example.com".to_string());
         let mut entity = DbEntity::new(user.clone());
 
-        // Verify untracked before save
         let was_untracked = entity.is_untracked();
 
-        // Save to database
         let save_result = entity.save(&ctx).await;
         let save_ok = save_result.is_ok();
 
-        // Verify tracked after save
         let is_tracked = entity.is_tracked();
 
-        // Verify row in database
-        let rows = UserEntity::find(&ctx, |f| f.eq("id", 10000)).await.unwrap();
+        let rows = UserEntity::find(&ctx, filter!(eq("id", 10000))).await.unwrap();
         let row_found = !rows.is_empty();
 
         let row_matches = if let Some(loaded) = rows.get(0) {
@@ -178,31 +170,23 @@ fn orm_save_update(context: &DbContext) -> BoxFuture<'static, bool> {
         truncate(&ctx).await;
         header("ORM · Save update to tracked entity (UPDATE)");
 
-        // Insert initial data
-        let _user = UserEntity::new(10001, "Bob".to_string(), "bob@example.com".to_string());
         ctx.insert(Query::insert("users").insert(vec![
             ("id", DbValue::from_i64(10001)),
             ("name", DbValue::from_string("Bob".to_string())),
             ("email", DbValue::from_string("bob@example.com".to_string())),
         ])).await.unwrap();
 
-        // Load as tracked entity
-        let mut entities = UserEntity::find(&ctx, |f| f.eq("id", 10001)).await.unwrap();
+        let mut entities = UserEntity::find(&ctx, filter!(eq("id", 10001))).await.unwrap();
         let loaded = entities.len() == 1;
 
         if let Some(entity) = entities.get_mut(0) {
             let was_tracked = entity.is_tracked();
 
-            // Modify only email
             entity.get_mut().email = "bob.new@example.com".to_string();
 
-            // Save updates
             let save_ok = entity.save(&ctx).await.is_ok();
 
-            // Verify update in database
-            let updated = UserEntity::find(&ctx, |f| f.eq("id", 10001))
-                .await
-                .unwrap();
+            let updated = UserEntity::find(&ctx, filter!(eq("id", 10001))).await.unwrap();
 
             let name_unchanged = updated.get(0).map(|e| e.get().name() == "Bob").unwrap_or(false);
             let email_changed = updated.get(0).map(|e| e.get().email() == "bob.new@example.com").unwrap_or(false);
@@ -230,30 +214,23 @@ fn orm_delete(context: &DbContext) -> BoxFuture<'static, bool> {
         truncate(&ctx).await;
         header("ORM · Delete tracked entity");
 
-        // Insert initial data
         ctx.insert(Query::insert("users").insert(vec![
             ("id", DbValue::from_i64(10002)),
             ("name", DbValue::from_string("Charlie")),
             ("email", DbValue::from_string("charlie@example.com")),
         ])).await.unwrap();
 
-        // Load as tracked
-        let mut entities = UserEntity::find(&ctx, |f| f.eq("id", 10002)).await.unwrap();
+        let mut entities = UserEntity::find(&ctx, filter!(eq("id", 10002))).await.unwrap();
         let loaded = entities.len() == 1;
 
         if let Some(entity) = entities.get_mut(0) {
             let was_tracked = entity.is_tracked();
 
-            // Delete from database
             let delete_ok = entity.delete(&ctx).await.is_ok();
 
-            // Verify detached after delete
             let is_detached = entity.is_detached();
 
-            // Verify row is gone
-            let remaining = UserEntity::find(&ctx, |f| f.eq("id", 10002))
-                .await
-                .unwrap();
+            let remaining = UserEntity::find(&ctx, filter!(eq("id", 10002))).await.unwrap();
             let row_deleted = remaining.is_empty();
 
             let ok = loaded && was_tracked && delete_ok && is_detached && row_deleted;
@@ -279,15 +256,13 @@ fn orm_load_tracked(context: &DbContext) -> BoxFuture<'static, bool> {
         truncate(&ctx).await;
         header("ORM · Load as tracked entity");
 
-        // Insert test data
         ctx.insert(Query::insert("users").insert(vec![
             ("id", DbValue::from_i64(10003)),
             ("name", DbValue::from_string("Diana")),
             ("email", DbValue::from_string("diana@example.com")),
         ])).await.unwrap();
 
-        // Load as tracked using find()
-        let entities = UserEntity::find(&ctx, |f| f.eq("id", 10003)).await.unwrap();
+        let entities = UserEntity::find(&ctx, filter!(eq("id", 10003))).await.unwrap();
         let has_results = !entities.is_empty();
 
         if let Some(entity) = entities.get(0) {
@@ -320,15 +295,13 @@ fn orm_load_readonly(context: &DbContext) -> BoxFuture<'static, bool> {
         truncate(&ctx).await;
         header("ORM · Load as read-only/detached entity");
 
-        // Insert test data
         ctx.insert(Query::insert("users").insert(vec![
             ("id", DbValue::from_i64(10004)),
             ("name", DbValue::from_string("Eve")),
             ("email", DbValue::from_string("eve@example.com")),
         ])).await.unwrap();
 
-        // Load as detached using find_readonly()
-        let entities = UserEntity::find_readonly(&ctx, |f| f.eq("id", 10004)).await.unwrap();
+        let entities = UserEntity::find_readonly(&ctx, filter!(eq("id", 10004))).await.unwrap();
         let has_results = !entities.is_empty();
 
         if let Some(entity) = entities.get(0) {

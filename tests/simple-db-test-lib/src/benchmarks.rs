@@ -1,6 +1,7 @@
 use std::time::Instant;
 use futures::future::BoxFuture;
 use simple_db::{DbContext, DbEntity, DbEntityTrait};
+use simple_db::{filter, project};
 use simple_db::driver::DbExecutor;
 use simple_db::types::DbValue;
 use simple_db::query::Query;
@@ -45,10 +46,8 @@ fn bench_insert_bulk(context: &DbContext) -> BoxFuture<'static, bool> {
     Box::pin(async move {
         let t = Instant::now();
 
-        // Clear table
         let _ = ctx.delete(Query::delete("users")).await;
 
-        // Insert 1000 rows in a single batch
         let rows: Vec<Vec<(&str, DbValue)>> = (0..1000).map(|i| vec![
             ("name",  DbValue::from_string(format!("User{}", i))),
             ("email", DbValue::from_string(format!("user{}@example.com", i))),
@@ -98,7 +97,7 @@ fn bench_select_with_filter(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let filter_start = Instant::now();
         let mut cursor = ctx.find(
-            Query::find("users").filter(|b| b.gte("age", 30).lt("age", 40))
+            Query::find("users").filter(filter!(gte("age", 30), lt("age", 40)))
         ).await.unwrap();
         let mut count = 0usize;
         while let Ok(Some(_row)) = cursor.next().await {
@@ -128,7 +127,7 @@ fn bench_update_bulk(context: &DbContext) -> BoxFuture<'static, bool> {
         let _ = ctx.update(
             Query::update("users")
                 .set("age", DbValue::from_i32(50))
-                .filter(|b| b.is_in("name", names))
+                .filter(filter!(is_in("name", names)))
         ).await;
         let update_time = update_start.elapsed();
 
@@ -151,7 +150,7 @@ fn bench_delete_bulk(context: &DbContext) -> BoxFuture<'static, bool> {
             .collect();
         let delete_start = Instant::now();
         let _ = ctx.delete(
-            Query::delete("users").filter(|b| b.is_in("name", names))
+            Query::delete("users").filter(filter!(is_in("name", names)))
         ).await;
         let delete_time = delete_start.elapsed();
 
@@ -173,24 +172,21 @@ fn bench_aggregations(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let agg_start = Instant::now();
 
-        // COUNT
-        let mut cursor = ctx.find(Query::find("users").project(|b| b.count_all())).await.unwrap();
+        let mut cursor = ctx.find(Query::find("users").project(project!(count_all()))).await.unwrap();
         if let Ok(Some(_row)) = cursor.next().await {
             let count_time = agg_start.elapsed();
             bench_detail(&format!("COUNT(*)     latency {:.3} ms", count_time.as_secs_f64() * 1000.0));
         }
 
-        // AVG
         let avg_start = Instant::now();
-        let mut cursor = ctx.find(Query::find("users").project(|b| b.avg("age"))).await.unwrap();
+        let mut cursor = ctx.find(Query::find("users").project(project!(avg("age")))).await.unwrap();
         if let Ok(Some(_row)) = cursor.next().await {
             let avg_time = avg_start.elapsed();
             bench_detail(&format!("AVG(age)     latency {:.3} ms", avg_time.as_secs_f64() * 1000.0));
         }
 
-        // SUM
         let sum_start = Instant::now();
-        let mut cursor = ctx.find(Query::find("users").project(|b| b.sum("age"))).await.unwrap();
+        let mut cursor = ctx.find(Query::find("users").project(project!(sum("age")))).await.unwrap();
         if let Ok(Some(_row)) = cursor.next().await {
             let sum_time = sum_start.elapsed();
             bench_detail(&format!("SUM(age)     latency {:.3} ms", sum_time.as_secs_f64() * 1000.0));
@@ -211,7 +207,6 @@ fn bench_orm_insert(context: &DbContext) -> BoxFuture<'static, bool> {
     Box::pin(async move {
         let t = Instant::now();
 
-        // Clear table
         let _ = ctx.delete(Query::delete("users")).await;
 
         let insert_start = Instant::now();
@@ -243,7 +238,7 @@ fn bench_orm_update(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
 
         let ids: Vec<DbValue> = (0..50).map(|i| DbValue::from_i64(20000 + i)).collect();
-        let mut entities = UserEntity::find(&ctx, |f| f.is_in("id", ids)).await.unwrap();
+        let mut entities = UserEntity::find(&ctx, filter!(is_in("id", ids))).await.unwrap();
         for (i, entity) in entities.iter_mut().enumerate() {
             entity.get_mut().set_email(format!("updated{}@example.com", i));
         }
@@ -271,7 +266,7 @@ fn bench_orm_delete(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
 
         let ids: Vec<DbValue> = (50..100).map(|i| DbValue::from_i64(20000 + i)).collect();
-        let mut entities = UserEntity::find(&ctx, |f| f.is_in("id", ids)).await.unwrap();
+        let mut entities = UserEntity::find(&ctx, filter!(is_in("id", ids))).await.unwrap();
 
         let delete_start = Instant::now();
         let tx = ctx.begin().await.unwrap();
@@ -295,7 +290,6 @@ fn bench_orm_find_tracked(context: &DbContext) -> BoxFuture<'static, bool> {
     Box::pin(async move {
         let t = Instant::now();
 
-        // Recreate test data
         let _ = ctx.delete(Query::delete("users")).await;
         let seed_rows: Vec<Vec<(&str, DbValue)>> = (0..100).map(|i| vec![
             ("name",  DbValue::from_string(format!("FindUser{}", i))),
@@ -304,7 +298,7 @@ fn bench_orm_find_tracked(context: &DbContext) -> BoxFuture<'static, bool> {
         let _ = ctx.insert(Query::insert("users").bulk_insert(seed_rows)).await;
 
         let find_start = Instant::now();
-        let entities = UserEntity::find(&ctx, |f| f.gte("id", 0)).await.unwrap();
+        let entities = UserEntity::find(&ctx, filter!(gte("id", 0))).await.unwrap();
         let find_time = find_start.elapsed();
         let count = entities.len();
 
@@ -324,7 +318,7 @@ fn bench_orm_find_readonly(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
 
         let find_start = Instant::now();
-        let entities = UserEntity::find_readonly(&ctx, |f| f.gte("id", 0)).await.unwrap();
+        let entities = UserEntity::find_readonly(&ctx, filter!(gte("id", 0))).await.unwrap();
         let find_time = find_start.elapsed();
         let count = entities.len();
 

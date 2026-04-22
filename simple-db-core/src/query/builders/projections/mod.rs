@@ -11,7 +11,7 @@ pub use projection_builder::ProjectionBuilder;
 pub type ProjectionDefinition = SmallVec<[Projection; 10]>;
 
 #[macro_export]
-macro_rules! macro_name {
+macro_rules! project {
     // Matches an empty macro invocation
     () => {
         $crate::query::ProjectionBuilder::new().build()

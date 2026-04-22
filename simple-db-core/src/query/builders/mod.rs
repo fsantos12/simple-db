@@ -111,7 +111,7 @@ mod tests {
     #[test]
     fn test_negated_filter() {
         let filter = FilterBuilder::new()
-            .not(|b| b.eq("status", "deleted"))
+            .not(FilterBuilder::new().eq("status", "deleted").build())
             .build();
 
         assert!(!filter.is_empty());

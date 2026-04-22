@@ -24,9 +24,7 @@ impl GroupBuilder {
     /// Add multiple fields to group by.
     pub fn fields<F, I>(mut self, fields: I) -> Self
     where F: Into<SmolStr>, I: IntoIterator<Item = F> {
-        for f in fields {
-            self.0.push(f.into());
-        }
+        self.0.extend(fields.into_iter().map(Into::into));
         self
     }
 

@@ -46,9 +46,7 @@ impl FilterBuilder {
 
     /// Appends all filters from an iterator to this builder.
     pub fn extend<I>(mut self, filters: I) -> Self
-    where
-        I: IntoIterator<Item = Filter>,
-    {
+    where I: IntoIterator<Item = Filter> {
         self.0.extend(filters);
         self
     }
@@ -177,30 +175,26 @@ impl FilterBuilder {
     /// Groups a set of predicates with AND: `(a AND b AND ...)`.
     ///
     /// If the closure produces no predicates the group is silently dropped.
-    pub fn and<F>(self, build: F) -> Self
-    where
-        F: FnOnce(FilterBuilder) -> FilterBuilder,
-    {
-        let sub = build(FilterBuilder::new());
-        if sub.0.is_empty() {
+    pub fn and<I>(self, filters: I) -> Self
+    where I: IntoIterator<Item = Filter> {
+        let vec: Vec<Filter> = filters.into_iter().collect();
+        if vec.is_empty() {
             self
         } else {
-            self.add(Filter::And(sub.0.into_vec()))
+            self.add(Filter::And(vec))
         }
     }
 
     /// Groups a set of predicates with OR: `(a OR b OR ...)`.
     ///
     /// If the closure produces no predicates the group is silently dropped.
-    pub fn or<F>(self, build: F) -> Self
-    where
-        F: FnOnce(FilterBuilder) -> FilterBuilder,
-    {
-        let sub = build(FilterBuilder::new());
-        if sub.0.is_empty() {
+    pub fn or<I>(self, filters: I) -> Self
+    where I: IntoIterator<Item = Filter> {
+        let vec: Vec<Filter> = filters.into_iter().collect();
+        if vec.is_empty() {
             self
         } else {
-            self.add(Filter::Or(sub.0.into_vec()))
+            self.add(Filter::Or(vec))
         }
     }
 
@@ -209,15 +203,13 @@ impl FilterBuilder {
     /// - Zero predicates → silently dropped.
     /// - One predicate → `NOT predicate`.
     /// - Two or more → `NOT (a AND b AND ...)`.
-    pub fn not<F>(self, build: F) -> Self
-    where
-        F: FnOnce(FilterBuilder) -> FilterBuilder,
-    {
-        let mut filters = build(FilterBuilder::new()).0;
-        match filters.len() {
+    pub fn not<I>(self, filters: I) -> Self
+    where I: IntoIterator<Item = Filter> {
+        let mut vec: Vec<Filter> = filters.into_iter().collect();
+        match vec.len() {
             0 => self,
-            1 => self.add(Filter::Not(Box::new(filters.pop().expect("exactly one filter")))),
-            _ => self.add(Filter::Not(Box::new(Filter::And(filters.into_vec())))),
+            1 => self.add(Filter::Not(Box::new(vec.pop().unwrap()))),
+            _ => self.add(Filter::Not(Box::new(Filter::And(vec)))),
         }
     }
 

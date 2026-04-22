@@ -2,7 +2,7 @@ use std::time::{Duration, Instant};
 
 use futures::future::BoxFuture;
 use simple_db::DbContext;
-use simple_db::query::Query;
+use simple_db::query::{FilterBuilder, Query};
 use simple_db::types::{DbRow, DbRowExt, DbValue};
 
 mod orm_tests;
@@ -480,7 +480,7 @@ fn find_or_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
         let mut c = ctx.find(
             Query::find("users")
-                .filter(|b| b.or(|s| s.eq("active", 0i64).gt("balance", 800.0f64)))
+                .filter(|b| b.or(FilterBuilder::new().eq("active", 0i64).gt("balance", 800.0f64).build()))
         ).await.unwrap();
         let mut count = 0usize;
         while c.next().await.unwrap().is_some() { count += 1; }
@@ -507,7 +507,7 @@ fn find_not_filter_test(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
         let mut c = ctx.find(
             Query::find("users")
-                .filter(|b| b.not(|s| s.eq("active", 1i64)))
+                .filter(|b| b.not(FilterBuilder::new().eq("active", 1i64).build()))
         ).await.unwrap();
         let mut count = 0usize;
         while c.next().await.unwrap().is_some() { count += 1; }

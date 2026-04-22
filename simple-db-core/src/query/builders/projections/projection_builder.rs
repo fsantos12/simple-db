@@ -67,6 +67,10 @@ impl ProjectionBuilder {
         self.add(Projection::Max(field.into()))
     }
 
+    pub fn r#as<A: Into<SmolStr>>(self, proj: Projection, alias: A) -> Self {
+        self.add(proj.r#as(alias))
+    }
+
     /// Finalize the builder and return the projections.
     pub fn build(self) -> SmallVec<[Projection; 10]> {
         self.0

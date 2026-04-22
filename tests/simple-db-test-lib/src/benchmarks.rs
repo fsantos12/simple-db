@@ -318,7 +318,7 @@ fn bench_orm_find_readonly(context: &DbContext) -> BoxFuture<'static, bool> {
         let t = Instant::now();
 
         let find_start = Instant::now();
-        let entities = UserEntity::find_readonly(&ctx, filter!(gte("id", 0))).await.unwrap();
+        let entities = UserEntity::find_readonly(&ctx, |q| q.filter(filter!(gte("id", 0)))).await.unwrap();
         let find_time = find_start.elapsed();
         let count = entities.len();
 

@@ -17,9 +17,20 @@ pub trait DbEntityTrait: Clone {
             .build()
     }
 
-    /// Finds all entities matching the filter, returned as tracked entities.
-    async fn find(executor: &dyn DbExecutor, filter: FilterDefinition) -> DbResult<Vec<DbEntity<Self>>> {
-        let query = FindQuery::new(Self::collection_name()).filter(filter);
+    /// Returns all matching entities as tracked (change-detected).
+    ///
+    /// The closure receives a pre-built `FindQuery` for this collection so you
+    /// can add filters, sorts, pagination, and projections without repeating
+    /// the collection name:
+    ///
+    /// ```rust,ignore
+    /// UserEntity::find(&ctx, |q| q.filter(filter!(eq("active", true))).order_by(sort!(asc("name"))).limit(20)).await?
+    /// ```
+    async fn find<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Vec<DbEntity<Self>>>
+    where
+        F: FnOnce(FindQuery) -> FindQuery + Send,
+    {
+        let query = build(FindQuery::new(Self::collection_name()));
         let mut cursor = executor.find(query).await?;
 
         let mut entities = Vec::new();
@@ -30,9 +41,79 @@ pub trait DbEntityTrait: Clone {
         Ok(entities)
     }
 
-    /// Finds all entities matching the filter as read-only (detached).
-    async fn find_readonly(executor: &dyn DbExecutor, filter: FilterDefinition) -> DbResult<Vec<DbEntity<Self>>> {
-        let query = FindQuery::new(Self::collection_name()).filter(filter);
+    /// Returns all matching entities as detached (read-only, no change tracking).
+    ///
+    /// Same query builder API as [`find`](DbEntityTrait::find).
+    async fn find_readonly<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Vec<DbEntity<Self>>>
+    where
+        F: FnOnce(FindQuery) -> FindQuery + Send,
+    {
+        let query = build(FindQuery::new(Self::collection_name()));
+        let mut cursor = executor.find(query).await?;
+
+        let mut entities = Vec::new();
+        while let Some(row) = cursor.next().await? {
+            entities.push(DbEntity::from_db_readonly(row.as_ref()));
+        }
+
+        Ok(entities)
+    }
+
+    /// Returns the first matching entity as tracked, or `None` if no row matched.
+    ///
+    /// Automatically applies `LIMIT 1`. Use the closure to add a filter or sort
+    /// so the "first" row is deterministic:
+    ///
+    /// ```rust,ignore
+    /// UserEntity::find_one(&ctx, |q| q.filter(filter!(eq("id", 42)))).await?
+    /// ```
+    async fn find_one<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Option<DbEntity<Self>>>
+    where
+        F: FnOnce(FindQuery) -> FindQuery + Send,
+    {
+        let query = build(FindQuery::new(Self::collection_name())).limit(1);
+        let mut cursor = executor.find(query).await?;
+
+        if let Some(row) = cursor.next().await? {
+            Ok(Some(DbEntity::from_db(row.as_ref())))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Returns the first matching entity as detached (read-only), or `None`.
+    ///
+    /// Same as [`find_one`](DbEntityTrait::find_one) but without change tracking.
+    async fn find_one_readonly<F>(executor: &dyn DbExecutor, build: F) -> DbResult<Option<DbEntity<Self>>>
+    where
+        F: FnOnce(FindQuery) -> FindQuery + Send,
+    {
+        let query = build(FindQuery::new(Self::collection_name())).limit(1);
+        let mut cursor = executor.find(query).await?;
+
+        if let Some(row) = cursor.next().await? {
+            Ok(Some(DbEntity::from_db_readonly(row.as_ref())))
+        } else {
+            Ok(None)
+        }
+    }
+
+    /// Returns every entity in the collection as tracked.
+    async fn find_all(executor: &dyn DbExecutor) -> DbResult<Vec<DbEntity<Self>>> {
+        let query = FindQuery::new(Self::collection_name());
+        let mut cursor = executor.find(query).await?;
+
+        let mut entities = Vec::new();
+        while let Some(row) = cursor.next().await? {
+            entities.push(DbEntity::from_db(row.as_ref()));
+        }
+
+        Ok(entities)
+    }
+
+    /// Returns every entity in the collection as detached (read-only).
+    async fn find_all_readonly(executor: &dyn DbExecutor) -> DbResult<Vec<DbEntity<Self>>> {
+        let query = FindQuery::new(Self::collection_name());
         let mut cursor = executor.find(query).await?;
 
         let mut entities = Vec::new();

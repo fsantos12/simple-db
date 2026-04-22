@@ -127,7 +127,7 @@ fn orm_save_new(context: &DbContext) -> BoxFuture<'static, bool> {
 
         let is_tracked = entity.is_tracked();
 
-        let rows = UserEntity::find(&ctx, filter!(eq("id", 10000))).await.unwrap();
+        let rows = UserEntity::find(&ctx, |q| q.filter(filter!(eq("id", 10000)))).await.unwrap();
         let row_found = !rows.is_empty();
 
         let row_matches = if let Some(loaded) = rows.get(0) {
@@ -177,7 +177,7 @@ fn orm_save_update(context: &DbContext) -> BoxFuture<'static, bool> {
             ("email", DbValue::from_string("bob@example.com".to_string())),
         ])).await.unwrap();
 
-        let mut entities = UserEntity::find(&ctx, filter!(eq("id", 10001))).await.unwrap();
+        let mut entities = UserEntity::find(&ctx, |q| q.filter(filter!(eq("id", 10001)))).await.unwrap();
         let loaded = entities.len() == 1;
 
         if let Some(entity) = entities.get_mut(0) {
@@ -187,7 +187,7 @@ fn orm_save_update(context: &DbContext) -> BoxFuture<'static, bool> {
 
             let save_ok = entity.save(&ctx).await.is_ok();
 
-            let updated = UserEntity::find(&ctx, filter!(eq("id", 10001))).await.unwrap();
+            let updated = UserEntity::find(&ctx, |q| q.filter(filter!(eq("id", 10001)))).await.unwrap();
 
             let name_unchanged = updated.get(0).map(|e| e.get().name() == "Bob").unwrap_or(false);
             let email_changed = updated.get(0).map(|e| e.get().email() == "bob.new@example.com").unwrap_or(false);
@@ -221,7 +221,7 @@ fn orm_delete(context: &DbContext) -> BoxFuture<'static, bool> {
             ("email", DbValue::from_string("charlie@example.com")),
         ])).await.unwrap();
 
-        let mut entities = UserEntity::find(&ctx, filter!(eq("id", 10002))).await.unwrap();
+        let mut entities = UserEntity::find(&ctx, |q| q.filter(filter!(eq("id", 10002)))).await.unwrap();
         let loaded = entities.len() == 1;
 
         if let Some(entity) = entities.get_mut(0) {
@@ -231,7 +231,7 @@ fn orm_delete(context: &DbContext) -> BoxFuture<'static, bool> {
 
             let is_detached = entity.is_detached();
 
-            let remaining = UserEntity::find(&ctx, filter!(eq("id", 10002))).await.unwrap();
+            let remaining = UserEntity::find(&ctx, |q| q.filter(filter!(eq("id", 10002)))).await.unwrap();
             let row_deleted = remaining.is_empty();
 
             let ok = loaded && was_tracked && delete_ok && is_detached && row_deleted;
@@ -263,7 +263,7 @@ fn orm_load_tracked(context: &DbContext) -> BoxFuture<'static, bool> {
             ("email", DbValue::from_string("diana@example.com")),
         ])).await.unwrap();
 
-        let entities = UserEntity::find(&ctx, filter!(eq("id", 10003))).await.unwrap();
+        let entities = UserEntity::find(&ctx, |q| q.filter(filter!(eq("id", 10003)))).await.unwrap();
         let has_results = !entities.is_empty();
 
         if let Some(entity) = entities.get(0) {
@@ -302,7 +302,7 @@ fn orm_load_readonly(context: &DbContext) -> BoxFuture<'static, bool> {
             ("email", DbValue::from_string("eve@example.com")),
         ])).await.unwrap();
 
-        let entities = UserEntity::find_readonly(&ctx, filter!(eq("id", 10004))).await.unwrap();
+        let entities = UserEntity::find_readonly(&ctx, |q| q.filter(filter!(eq("id", 10004)))).await.unwrap();
         let has_results = !entities.is_empty();
 
         if let Some(entity) = entities.get(0) {

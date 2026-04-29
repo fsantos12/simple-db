@@ -45,12 +45,3 @@ impl PostgresExecutor {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_postgres_executor_enum_exists() {
-        // This test documents the PostgresExecutor API.
-        // Integration tests require a running PostgreSQL server.
-    }
-}

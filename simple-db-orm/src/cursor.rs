@@ -26,12 +26,3 @@ impl<C: DbCursor + ?Sized> DbCursorEntityExt for C {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_cursor_entity_ext_trait_exists() {
-        // This test documents the DbCursorEntityExt API.
-        // Concrete testing requires a cursor implementation.
-    }
-}

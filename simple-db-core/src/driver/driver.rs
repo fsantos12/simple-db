@@ -17,13 +17,3 @@ pub trait DbDriver: DbExecutor {
     /// Checks the connection to the database server. Default implementation always succeeds.
     async fn ping(&self) -> DbResult<()> { Ok(()) }
 }
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_db_driver_trait_exists() {
-        // This test documents the DbDriver API.
-        // Concrete testing requires a driver implementation.
-    }
-}

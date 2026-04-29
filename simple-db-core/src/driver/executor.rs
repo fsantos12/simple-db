@@ -41,13 +41,3 @@ pub trait DbExecutor: Send + Sync {
         self.prepare_delete(query)?.execute().await
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_db_executor_trait_exists() {
-        // This test documents the DbExecutor API.
-        // Concrete testing requires a driver implementation.
-    }
-}

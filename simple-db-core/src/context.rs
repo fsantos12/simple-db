@@ -37,13 +37,3 @@ impl DbExecutor for DbContext {
         self.driver.prepare_delete(query)
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_db_context_new() {
-        // DbContext requires a trait object driver for testing;
-        // full testing should use a mock driver implementation.
-        // This test documents the API surface.
-    }
-}

@@ -93,11 +93,3 @@ impl DbDriver for PostgresDriver {
         Ok(())
     }
 }
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_postgres_driver_trait_exists() {
-        // This test documents the PostgresDriver API.
-        // Integration tests require a PostgreSQL server connection.
-    }
-}

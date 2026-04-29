@@ -93,12 +93,3 @@ impl DbDriver for MySqlDriver {
         Ok(())
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_mysql_driver_trait_exists() {
-        // This test documents the MySqlDriver API.
-        // Integration tests require a MySQL server connection.
-    }
-}

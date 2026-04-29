@@ -95,11 +95,3 @@ impl DbDriver for SqliteDriver {
         Ok(())
     }
 }
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_sqlite_driver_trait_exists() {
-        // This test documents the SqliteDriver API.
-        // Integration tests require a database file or in-memory connection.
-    }
-}

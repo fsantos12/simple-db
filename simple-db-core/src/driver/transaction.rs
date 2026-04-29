@@ -80,13 +80,3 @@ impl DbTransactionExt for Arc<dyn DbDriver> {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_transaction_trait_exists() {
-        // This test documents the transaction API surface.
-        // Concrete testing requires a mock driver implementation.
-    }
-}

@@ -45,12 +45,3 @@ impl SqliteExecutor {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_sqlite_executor_enum_exists() {
-        // This test documents the SqliteExecutor API.
-        // Integration tests require a database file or in-memory connection.
-    }
-}

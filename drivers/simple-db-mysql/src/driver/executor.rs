@@ -45,12 +45,3 @@ impl MySqlExecutor {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_mysql_executor_enum_exists() {
-        // This test documents the MySqlExecutor API.
-        // Integration tests require a running MySQL server.
-    }
-}

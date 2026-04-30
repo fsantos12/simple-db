@@ -1,6 +1,6 @@
 # Prism-DB
 
-Prism-DB is a modular database toolkit for Rust, built around a clean query-builder layer, pluggable SQL drivers, and a shared core API. It is designed to keep application code consistent across SQLite, PostgreSQL, and MySQL while leaning on Rust's type system and SQLx for safe, predictable database access.
+Prism-DB is a modular database toolkit for Rust, built around a clean query-builder layer, pluggable drivers, and a shared core API. It is designed to keep application code consistent across different backends while leaning on Rust's type system and SQLx for safe, predictable database access today.
 
 ## What lives where
 
@@ -27,9 +27,26 @@ Driver features are optional:
 - `mysql`
 - `orm`
 
-## Builders and Queries
+## Builders, Queries, and Macros
 
-Prism-DB exposes fluent builders for projections, filters, sorts, and groups. The `Query` helper gives you a simple entry point for composing CRUD statements.
+Prism-DB exposes fluent builders for projections, filters, sorts, and groups. The `Query` helper gives you a simple entry point for composing CRUD statements, and the derive macros keep entity modeling ergonomic.
+
+### Macros
+
+Use the macros crate when you want entity derivation and ORM support with less boilerplate.
+
+```rust
+use prism_db::{DbEntity, DeriveDbEntity};
+
+#[derive(DeriveDbEntity, Clone)]
+#[db(table = "users")]
+pub struct User {
+    #[db(primary_key)]
+    pub id: i64,
+    pub name: String,
+    pub email: String,
+}
+```
 
 ### Build a `SELECT`
 

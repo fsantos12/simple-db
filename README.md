@@ -10,6 +10,10 @@ Prism-DB is a modular database toolkit for Rust, built around a clean query-buil
 - `prism-db-sqlite`, `prism-db-postgres`, `prism-db-mysql`: SQLx-backed drivers
 - `prism-db`: public facade that re-exports the pieces most applications need
 
+## Development Note
+
+Comments and tests in this repository were generated with AI assistance and should be reviewed and validated before release.
+
 ## Install
 
 Enable only the pieces you need in `Cargo.toml`:
